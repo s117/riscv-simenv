@@ -29,6 +29,7 @@ def _init_register():
     from . import sys_getdents64
     from . import sys_getrandom
     from . import sys_renameat2
+    from . import sys_readlinkat
     global _DEFAULT_FACTORY
     global _FACTORY_REGISTER
     _DEFAULT_FACTORY = syscall.syscall
@@ -56,6 +57,7 @@ def _init_register():
         "sys_getdents64": sys_getdents64.sys_getdents64,
         "sys_getrandom": sys_getrandom.sys_getrandom,
         "sys_renameat2": sys_renameat2.sys_renameat2,
+        "sys_readlinkat": sys_readlinkat.sys_readlinkat,
     }
 
 

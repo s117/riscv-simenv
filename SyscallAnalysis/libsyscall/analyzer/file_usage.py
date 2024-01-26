@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 from collections import defaultdict
 from typing import Dict, List
 
@@ -109,6 +110,7 @@ def stat_file_usage(syscalls, print_info=False):
     from ..syscalls.sys_unlinkat import sys_unlinkat
     from ..syscalls.sys_mkdirat import sys_mkdirat
     from ..syscalls.sys_renameat2 import sys_renameat2
+    from ..syscalls.sys_readlinkat import sys_readlinkat
 
     file_usage_info = defaultdict(FileUsageInfo)
 
@@ -152,6 +154,19 @@ def stat_file_usage(syscalls, print_info=False):
             if stat_paths:
                 assert len(stat_paths) == 1
                 record_file_stat(stat_paths[0])
+        if isinstance(scall, sys_readlinkat):
+            orig_path = scall.get_arg_paths()[0]
+            real_path_target = scall.realname_target
+            record_file_stat(orig_path)
+            if print_info and real_path_target != orig_path:
+                print(
+                    "Warning: the RISCV process may assume file "
+                    f"\"{orig_path.rawpath()}\" at \"{orig_path.basepath()}\" "
+                    f"is a symbolic link to \"{real_path_target}\", "
+                    "but simenv might spawn it (if required) as "
+                    "the actual FS object pointed by the link.",
+                    file=sys.stderr
+                )
         elif isinstance(scall, sys_mkdirat):
             record_file_create(scall.get_arg_paths()[0])
         elif isinstance(scall, sys_linkat):
