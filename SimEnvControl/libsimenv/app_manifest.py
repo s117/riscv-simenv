@@ -3,71 +3,14 @@ from typing import List, Dict, Optional, Union
 
 from SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo
 from SyscallAnalysis.libsyscall.syscalls.syscall import path as TargetPath
-from SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
 from .utils import *
-
-
-class ContentManager:
-    def __init__(self, pristine_sysroot, post_sim_sysroot):
-        self.post_sim_sysroot = post_sim_sysroot
-        self.pristine_sysroot = pristine_sysroot
-        self.pristine_path_convertor = TargetPathConverter({
-            "/": pristine_sysroot
-        })
-        self.post_sim_path_convertor = TargetPathConverter({
-            "/": post_sim_sysroot
-        })
-
-    def locate_pristine_file(self, target_path):
-        # type: (str) -> Optional[str]
-        expected_location = pathlib.PosixPath(
-            self.pristine_path_convertor.t2h(target_path)
-        )
-        if expected_location.exists():
-            return str(expected_location)
-        else:
-            return None
-
-    def locate_post_sim_file(self, target_path):
-        # type: (str) -> Optional[str]
-        # remap from "/..." to "$post_sim_sysroot/..."
-        expected_location = pathlib.PosixPath(
-            self.post_sim_path_convertor.t2h(target_path)
-        )
-        if expected_location.exists():
-            return str(expected_location)
-        else:
-            return None
-
-    @staticmethod
-    def do_sha256(res_path):
-        if res_path:
-            if os.path.isfile(res_path):
-                return sha256(res_path)
-            elif os.path.isdir(res_path):
-                return "DIR"
-            elif os.path.exists(res_path):
-                return "SKIP"  # Skip this type of path, usually it is a device file
-            else:
-                return None
-        else:
-            return None
-
-    def get_pristine_hash(self, target_path):
-        res_path = self.locate_pristine_file(target_path)
-
-        return self.do_sha256(res_path)
-
-    def get_post_sim_hash(self, target_path):
-        res_path = self.locate_post_sim_file(target_path)
-
-        return self.do_sha256(res_path)
+from .content_manager import ContentManager
 
 
 def build_manifest(app_name, app_cmd, app_init_cwd, memsize, sysroot_name,
-                   pristine_sysroot, post_sim_sysroot,
+                   content_manager,
                    file_usage_info, additional_inputs, copy_spawn):
-    # type: (str, str, str, int, str, str, str, Dict[str, FileUsageInfo], List[str], bool) -> Dict
+    # type: (str, str, str, int, str, ContentManager, Dict[str, FileUsageInfo], List[str], bool) -> Dict
     manifest = dict()
     manifest["app_name"] = app_name
     manifest["app_cmd"] = app_cmd
@@ -80,7 +23,6 @@ def build_manifest(app_name, app_cmd, app_init_cwd, memsize, sysroot_name,
         manifest["spawn_mode"] = "link"
     fs_access_dict = dict()
     manifest["fs_access"] = fs_access_dict
-    content_manager = ContentManager(os.path.abspath(pristine_sysroot), os.path.abspath(post_sim_sysroot))
 
     def manifest_add_fs_access_entry(_path, _file_usage):
         # type: (str, FileUsageInfo) -> None
@@ -122,7 +64,7 @@ def build_manifest(app_name, app_cmd, app_init_cwd, memsize, sysroot_name,
             fatal(
                 "Cmdline analysis shows the app will use file [%s] via stdin redirect, "
                 "but it is not found in the pristine sysroot [%s]" %
-                (stdin_file_target_path, pristine_sysroot)
+                (stdin_file_target_path, content_manager.get_pristine_sysroot())
             )
         manifest_add_fs_access_entry(stdin_file_target_path, file_usage)
         print("Added stdin redirect source [%s] to manifest" % path)

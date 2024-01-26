@@ -12,6 +12,7 @@ from .libsimenv.manifest_db import save_to_manifest_db
 from .libsimenv.shcmd_utils import extract_stdin_file_from_shcmd
 from .libsimenv.sysroots_db import get_pristine_sysroot_dir
 from .libsimenv.utils import fatal, warning
+from .libsimenv.content_manager import ContentManager
 
 
 @click.command()
@@ -65,10 +66,11 @@ def learn(repo_path, app_name, app_cmd_file, app_init_cwd, memsize, strace, pris
     strace_str = strace.read()
     trace_analyzer.parse_strace_str(strace_str)
 
+    content_manager = ContentManager(os.path.abspath(pristine_sysroot_path), os.path.abspath(post_sim_sysroot_path))
     file_usage_info = stat_file_usage(trace_analyzer.syscalls)
+
     manifest = build_manifest(app_name, app_cmd, app_init_cwd, memsize, pristine_sysroot_name,
-                              pristine_sysroot_path,
-                              post_sim_sysroot_path,
+                              content_manager,
                               file_usage_info,
                               stdin_files,
                               copy_spawn)
