@@ -33,7 +33,7 @@ def complete_sysroot_names(ctx, param, incomplete):
 
     def try_get_sysroots_path():
         cmdline_val = parsed_params["repo_path"]
-        envron_val = try_retrieve_value_from_envron("ATOOL_SIMENV_REPO_PATH")
+        envron_val = try_retrieve_value_from_envron("RISCV_SIMENV_REPO_PATH")
         default_val = get_default_repo_path(False)
         if cmdline_val and os.path.isdir(get_sysroots_dir(cmdline_val)):
             return get_sysroots_dir(cmdline_val)
@@ -59,7 +59,7 @@ def complete_app_names(ctx, param, incomplete):
 
     def try_get_manifest_db_path():
         cmdline_val = parsed_params["repo_path"]
-        envron_val = try_retrieve_value_from_envron("ATOOL_SIMENV_REPO_PATH")
+        envron_val = try_retrieve_value_from_envron("RISCV_SIMENV_REPO_PATH")
         default_val = get_default_repo_path(False)
         if cmdline_val and os.path.isdir(get_manifests_dir(cmdline_val)):
             return get_manifests_dir(cmdline_val)
@@ -86,7 +86,7 @@ def complete_chkpt_names(ctx, param, incomplete):
 
     def try_get_checkpoints_archive_path():
         cmdline_val = parsed_params["repo_path"]
-        envron_val = try_retrieve_value_from_envron("ATOOL_SIMENV_REPO_PATH")
+        envron_val = try_retrieve_value_from_envron("RISCV_SIMENV_REPO_PATH")
         default_val = ""
         if cmdline_val and os.path.isdir(get_checkpoints_dir(cmdline_val)):
             return get_checkpoints_dir(cmdline_val)

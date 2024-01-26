@@ -26,7 +26,7 @@ def prompt_avail_app_name(manifest_db_path, checkpoint_db_path):
         )
     else:
         print("No record in the manifest DB [%s]" % manifest_db_path, file=sys.stderr)
-        print("To add an app to the repository, use `atool-app-repo`", file=sys.stderr)
+        print("To add an app to the repository, use `riscv-app-repo`", file=sys.stderr)
 
 
 def prompt_apps_checkpoint(app_names, checkpoints_db_path):
@@ -56,7 +56,7 @@ def list_app(ctx, app_names, brief):
     if not checkpoints_archive_path or not manifest_db_path:
         fatal(
             "Repository root is not set properly.\n"
-            "Specify it using --repo-path or environment variable 'ATOOL_SIMENV_REPO_PATH'."
+            "Specify it using --repo-path or environment variable 'RISCV_SIMENV_REPO_PATH'."
         )
         sys.exit(-1)
 

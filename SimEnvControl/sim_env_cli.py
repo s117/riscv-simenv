@@ -13,9 +13,9 @@ patch()
 
 @click.group()
 @click.pass_context
-@click.option("--repo-path", envvar='ATOOL_SIMENV_REPO_PATH',
+@click.option("--repo-path", envvar='RISCV_SIMENV_REPO_PATH',
               type=click.Path(exists=True, dir_okay=True, file_okay=False),
-              help='Override the SimEnv repository path given by the environmental variable "ATOOL_SIMENV_REPO_PATH".')
+              help='Override the SimEnv repository path given by the environmental variable "RISCV_SIMENV_REPO_PATH".')
 def cli(ctx, repo_path):
     """
     The simenv utility

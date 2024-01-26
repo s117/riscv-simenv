@@ -23,11 +23,11 @@ cleangdb: envclean envsetup gdb
 
 envsetup:
 	@ echo Setting up a new simenv at $(SIMENV_SYSROOT)
-	atool-simenv spawn $(APP_NAME) $(SIMENV_SYSROOT)
+	riscv-simenv spawn $(APP_NAME) $(SIMENV_SYSROOT)
 
 envcheck:
 	@ echo Verifing the simenv at $(SIMENV_SYSROOT)
-	atool-simenv verify $(APP_NAME) $(SIMENV_SYSROOT)
+	riscv-simenv verify $(APP_NAME) $(SIMENV_SYSROOT)
 
 envclean:
 	@ echo Removing the simenv at $(SIMENV_SYSROOT)

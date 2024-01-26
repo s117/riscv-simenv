@@ -1,0 +1,2 @@
+eval "$(_RISCV_SIMENV_COMPLETE=$(basename "$SHELL")_source riscv-simenv)"
+eval "$(_RISCV_APP_REPO_COMPLETE=$(basename "$SHELL")_source riscv-app-repo)"
