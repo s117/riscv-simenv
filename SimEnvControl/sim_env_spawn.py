@@ -4,6 +4,7 @@ import stat
 import click
 
 from SimEnvControl.libsimenv.sysroots_db import get_pristine_sysroot_dir
+from SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
 from .libsimenv.app_manifest import *
 from .libsimenv.autocomplete import complete_app_names
 from .libsimenv.manifest_db import *
@@ -47,7 +48,7 @@ def spawn(ctx, app_name, dest_dir, force, copy_mode):
     else:
         app_pristine_sysroot_name = manifest["app_pristine_sysroot"]
         app_pristine_sysroot_path = get_pristine_sysroot_dir(sysroots_archive_path, app_pristine_sysroot_name)
-        link_mode = not copy_mode and manifest["spawn_mode"] == "link"
+        copy_mode = copy_mode or manifest["spawn_mode"] == "copy"
 
         if not os.path.isdir(app_pristine_sysroot_path):
             fatal("App's pristine sysroot [%s] does not exist" % app_pristine_sysroot_path)
@@ -55,19 +56,54 @@ def spawn(ctx, app_name, dest_dir, force, copy_mode):
         pristine_path_converter = TargetPathConverter({"/": os.path.abspath(app_pristine_sysroot_path)})
         spawn_path_converter = TargetPathConverter({"/": os.path.abspath(dest_dir)})
 
-        def spawn_file(src, dst):
+        def dst_must_copy_spawn(usage):
+            # type: (FileUsageInfo) -> bool
+            """
+            Check whether a file must be copy-spawn based or its usage.
+            Return True if the file must be copy-spawned, False otherwise.
+            """
+            return (
+                    usage.has_write_data() or
+                    usage.has_open_rw() or
+                    usage.has_open_wr() or
+                    usage.has_stat()
+            )
+
+        def dst_must_writable(usage):
+            """
+            Check whether the spawn file must be writable by the RISCV app/
+            Return True if the file must be writable, False otherwise.
+            """
+            return (
+                    usage.has_write_data() or
+                    usage.has_open_rw() or
+                    usage.has_open_wr() or
+                    usage.has_remove() or
+                    usage.has_create()
+            )
+
+        def spawn_file(src, dst, usage):
+            # type: (str, str, FileUsageInfo) -> bool
+            """
+            Spawns a new file from src to dst.
+
+            Return True if file was spawn as a symbolic link.
+            Return False if file was spawn as a copy of origin.
+            """
             assert dst
             assert src
             par_dir = os.path.dirname(dst)
             spawn_dir(par_dir)
             if os.path.isdir(dst):
                 fatal("Malformed manifest input: %s implies both input file and dir" % dst)
-            if link_mode:
-                os.symlink(src, dst)
-                print("Symlink %s -> %s" % (src, dst))
-            else:
+            if copy_mode or dst_must_copy_spawn(usage):
                 shutil.copy2(src, dst, follow_symlinks=False)
                 print("Copy %s -> %s" % (src, dst))
+                return False
+            else:
+                os.symlink(src, dst)
+                print("Symlink %s -> %s" % (src, dst))
+                return True
 
         def spawn_dir(dpath):
             if dpath:
@@ -85,18 +121,9 @@ def spawn(ctx, app_name, dest_dir, force, copy_mode):
                 else:
                     file_src = pristine_path_converter.t2h(pname)
                     file_dst = spawn_path_converter.t2h(pname)
-                    spawn_file(
-                        file_src,
-                        file_dst
-                    )
-                    if not link_mode and (
-                            file_usage.has_remove() or
-                            file_usage.has_create() or
-                            file_usage.has_open_wr() or
-                            file_usage.has_open_rw() or
-                            file_usage.has_write_data()
-                    ):
-                        # in copy mode, automatic set the write permission if needed by the app
+                    spawn_file(file_src, file_dst, file_usage)
+                    if dst_must_writable(file_usage):
+                        # ensure the write permission is present when needed by the app
                         if not os.access(file_dst, os.W_OK):
                             st = os.stat(file_dst)
                             os.chmod(file_dst, st.st_mode | stat.S_IWRITE)
