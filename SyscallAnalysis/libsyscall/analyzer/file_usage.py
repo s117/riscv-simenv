@@ -148,7 +148,10 @@ def stat_file_usage(syscalls, print_info=False):
             continue
         # pathname reference analysis
         if isinstance(scall, sys_faccessat) or isinstance(scall, sys_fstatat) or isinstance(scall, sys_lstat):
-            record_file_stat(scall.get_arg_paths()[0])
+            stat_paths = scall.get_arg_paths()
+            if stat_paths:
+                assert len(stat_paths) == 1
+                record_file_stat(stat_paths[0])
         elif isinstance(scall, sys_mkdirat):
             record_file_create(scall.get_arg_paths()[0])
         elif isinstance(scall, sys_linkat):
