@@ -4,9 +4,14 @@ import shutil
 import string
 import sys
 
+__sha256_cache = {}  # type: dict[str, str]
 
-def sha256(fpath):
-    # type: (str) -> str
+
+def sha256(fpath, use_cache=True):
+    # type: (str, bool) -> str
+    global __sha256_cache
+    if use_cache and fpath in __sha256_cache:
+        return __sha256_cache[fpath]
     BUF_SIZE = 65536
     h = hashlib.sha256()
     with open(fpath, 'rb') as f:
@@ -15,7 +20,9 @@ def sha256(fpath):
             if not data:
                 break
             h.update(data)
-    return h.hexdigest()
+    sha256_hash = h.hexdigest()
+    __sha256_cache[fpath] = sha256_hash
+    return sha256_hash
 
 
 def is_valid_sha256(h):
