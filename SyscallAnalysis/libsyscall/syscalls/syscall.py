@@ -19,6 +19,9 @@ class path:
     def rawpath(self):
         return str(self.rpath)
 
+    def basepath(self):
+        return str(self.base)
+
     def abspath(self):
         # type: () -> str
         sep = os.path.sep
