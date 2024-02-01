@@ -1,6 +1,6 @@
 import os
 from functools import partial
-from typing import Callable, Iterable, Union, Dict
+from typing import Callable, Iterable, Union, Dict, Optional
 
 from click.core import Context, Argument, Option
 from click.shell_completion import CompletionItem
@@ -9,7 +9,6 @@ from natsort import natsorted
 from .checkpoints_db import get_available_checkpoints_for_app, get_all_available_checkpoints_for_any
 from .manifest_db import get_avail_apps_in_db
 from .repo_path import get_default_repo_path, get_sysroots_dir, get_manifests_dir, get_checkpoints_dir
-
 from .sysroots_db import get_all_sysroots
 
 
@@ -24,6 +23,7 @@ def get_parsed_params(ctx):
 
 
 def try_retrieve_value_from_envron(name):
+    # type: (str) -> Optional[str]
     return os.environ.get(name, None)
 
 
@@ -32,6 +32,7 @@ def complete_sysroot_names(ctx, param, incomplete):
     parsed_params = get_parsed_params(ctx)
 
     def try_get_sysroots_path():
+        # type: () -> Optional[str]
         cmdline_val = parsed_params["repo_path"]
         envron_val = try_retrieve_value_from_envron("RISCV_SIMENV_REPO_PATH")
         default_val = get_default_repo_path(False)
@@ -109,6 +110,7 @@ def complete_chkpt_names(ctx, param, incomplete):
 
 
 def __no_filter(_):
+    # type: (str) -> bool
     return True
 
 

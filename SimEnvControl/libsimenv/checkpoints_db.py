@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple
 
 
 def get_app_ckpt_dir(ckpt_root, app_name):
+    # type: (str, str) -> str
     return os.path.join(ckpt_root, app_name)
 
 
@@ -41,15 +42,22 @@ def get_all_available_checkpoints_for_any(chkpt_root):
 
 
 def check_checkpoint_exist(chkpt_root, app_name, checkpoint):
+    # type: (str, str, str) -> bool
     return os.path.isfile(
         get_checkpoint_abspath(chkpt_root, app_name, checkpoint)
     )
 
 
 def get_checkpoint_abspath(chkpt_root, app_name, checkpoint):
+    # type: (str, str, str) -> str
     return os.path.join(
         get_app_ckpt_dir(chkpt_root, app_name), checkpoint
     )
+
+
+def is_app_have_checkpoints(chkpt_root, app_name):
+    # type: (str, str) -> bool
+    return os.path.exists(get_app_ckpt_dir(chkpt_root, app_name))
 
 
 if __name__ == '__main__':
