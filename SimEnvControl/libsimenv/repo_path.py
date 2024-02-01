@@ -3,7 +3,7 @@ import operator
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 _MANIFEST_DB_DIR = "manifests"
 _CHECKPOINTS_DIR = "checkpoints"
@@ -59,6 +59,15 @@ def get_sysroots_dir(repo_path):
 def check_repo(repo_path):
     # type: (Optional[str]) -> None
 
+    if not repo_path:
+        print(
+            "Fatal: Repository path not provided. "
+            f"Run `{os.path.basename(sys.argv[0])} --help` "
+            "to see how to supply a repository path.",
+            file=sys.stderr
+        )
+        sys.exit(-1)
+
     path_to_check = (
         repo_path,
         get_sysroots_dir(repo_path),
@@ -74,3 +83,16 @@ def check_repo(repo_path):
     for path, status in zip(path_to_check, path_status):
         print("  [%s]: %s" % (" Exist " if status else "Missing", path), file=sys.stderr)
     sys.exit(-1)
+
+
+def get_repo_components_path(repo_path):
+    # type: (Optional[str]) -> Tuple[str, str, str]
+    """
+    Return the three components of the repository path in a tuple:
+        ([sysroot dir], [manifests dir], [checkpoints dir])
+    """
+    check_repo(repo_path)
+    sysroots_dir = get_sysroots_dir(repo_path)
+    manifests_dir = get_manifests_dir(repo_path)
+    checkpoints_dir = get_checkpoints_dir(repo_path)
+    return sysroots_dir, manifests_dir, checkpoints_dir,

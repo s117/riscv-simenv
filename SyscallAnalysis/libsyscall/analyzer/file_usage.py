@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from ..syscalls import syscall as s
+from ..syscalls.syscall import GenericPath
 
 
 class FileUsageInfo:
@@ -18,35 +19,50 @@ class FileUsageInfo:
     FUSE_OPEN_WR = 1 << 7
     FUSE_OPEN_RW = 1 << 8
 
-    def __init__(self):
-        self.fuse = 0
+    def __init__(self, fuse=0):
+        # type: (int) -> None
+        self.fuse = fuse
+
+    def __or__(self, other):
+        # type: (FileUsageInfo, FileUsageInfo) -> FileUsageInfo
+        ret_usage = FileUsageInfo(self.fuse | other.fuse)
+        return ret_usage
 
     def has_abs_ref(self):
-        return self.fuse & self.FUSE_ABS_REF
+        # type: () -> bool
+        return self.fuse & self.FUSE_ABS_REF == self.FUSE_ABS_REF
 
     def has_stat(self):
-        return self.fuse & self.FUSE_STAT
+        # type: () -> bool
+        return self.fuse & self.FUSE_STAT == self.FUSE_STAT
 
     def has_read_data(self):
-        return self.fuse & self.FUSE_READ_DATA
+        # type: () -> bool
+        return self.fuse & self.FUSE_READ_DATA == self.FUSE_READ_DATA
 
     def has_write_data(self):
-        return self.fuse & self.FUSE_WRITE_DATA
+        # type: () -> bool
+        return self.fuse & self.FUSE_WRITE_DATA == self.FUSE_WRITE_DATA
 
     def has_create(self):
-        return self.fuse & self.FUSE_CREATE
+        # type: () -> bool
+        return self.fuse & self.FUSE_CREATE == self.FUSE_CREATE
 
     def has_remove(self):
-        return self.fuse & self.FUSE_REMOVE
+        # type: () -> bool
+        return self.fuse & self.FUSE_REMOVE == self.FUSE_REMOVE
 
     def has_open_rd(self):
-        return self.fuse & self.FUSE_OPEN_RD
+        # type: () -> bool
+        return self.fuse & self.FUSE_OPEN_RD == self.FUSE_OPEN_RD
 
     def has_open_wr(self):
-        return self.fuse & self.FUSE_OPEN_WR
+        # type: () -> bool
+        return self.fuse & self.FUSE_OPEN_WR == self.FUSE_OPEN_WR
 
     def has_open_rw(self):
-        return self.fuse & self.FUSE_OPEN_RW
+        # type: () -> bool
+        return self.fuse & self.FUSE_OPEN_RW == self.FUSE_OPEN_RW
 
     @classmethod
     def build_from_str(cls, fuse_str):
@@ -65,16 +81,17 @@ class FileUsageInfo:
 
         fuse_str.strip()
         fuse_field_strs = map(lambda _s: _s.strip(), fuse_str.strip().split("|"))
-        new_fuse_rec = cls()
+        fuse = 0
         try:
             for fuse_field_str in fuse_field_strs:
-                new_fuse_rec.fuse |= name_2_bit[fuse_field_str]
+                fuse |= name_2_bit[fuse_field_str]
         except Exception:
             raise ValueError("%s is not a valid file usage description" % fuse_str)
 
-        return new_fuse_rec
+        return cls(fuse)
 
     def __str__(self):
+        # type: () -> str
         comp_set = (
             (self.FUSE_STAT, "FUSE_STAT"),
             (self.FUSE_READ_DATA, "FUSE_READ_DATA"),
@@ -94,7 +111,7 @@ class FileUsageInfo:
 
 
 def stat_file_usage(syscalls, print_info=False):
-    # type: (List[s.syscall], bool) -> Dict[str, FileUsageInfo]
+    # type: (List[s.Syscall], bool) -> Dict[str, FileUsageInfo]
     from ..syscalls.sys_read import sys_read
     from ..syscalls.sys_pread import sys_pread
     from ..syscalls.sys_write import sys_write
@@ -115,24 +132,31 @@ def stat_file_usage(syscalls, print_info=False):
     file_usage_info = defaultdict(FileUsageInfo)
 
     def _abs_bit(_f):
+        # type: (GenericPath) -> int
         return FileUsageInfo.FUSE_ABS_REF if _f.isabs() else 0
 
     def record_file_stat(_f):
+        # type: (GenericPath) -> None
         file_usage_info[_f.abspath()].fuse |= FileUsageInfo.FUSE_STAT | _abs_bit(_f)
 
     def record_file_read_data(_f):
+        # type: (GenericPath) -> None
         file_usage_info[_f.abspath()].fuse |= FileUsageInfo.FUSE_READ_DATA | _abs_bit(_f)
 
     def record_file_write_data(_f):
+        # type: (GenericPath) -> None
         file_usage_info[_f.abspath()].fuse |= FileUsageInfo.FUSE_WRITE_DATA | _abs_bit(_f)
 
     def record_file_create(_f):
+        # type: (GenericPath) -> None
         file_usage_info[_f.abspath()].fuse |= FileUsageInfo.FUSE_CREATE | _abs_bit(_f)
 
     def record_file_remove(_f):
+        # type: (GenericPath) -> None
         file_usage_info[_f.abspath()].fuse |= FileUsageInfo.FUSE_REMOVE | _abs_bit(_f)
 
     def record_file_open(_f, acc_mode):
+        # type: (GenericPath, int) -> None
         if acc_mode == os.O_RDONLY:
             file_usage_info[_f.abspath()].fuse |= FileUsageInfo.FUSE_OPEN_RD | _abs_bit(_f)
         elif acc_mode == os.O_WRONLY:
@@ -143,6 +167,7 @@ def stat_file_usage(syscalls, print_info=False):
             assert False
 
     def record_nothing(_f):
+        # type: (GenericPath) -> None
         pass
 
     for scall in syscalls:
@@ -181,14 +206,14 @@ def stat_file_usage(syscalls, print_info=False):
             record_file_remove(scall.get_arg_paths()[0])
 
         # fd def-use analysis
-        if isinstance(scall, s.mixin_syscall_def_fd):
+        if isinstance(scall, s.MixinSyscallDefFd):
             if isinstance(scall, sys_fcntl) and not scall.is_dupfd():
                 continue
 
             fd_path = scall.def_fd_get_path()
             record_file_open(
                 fd_path,
-                s.mixin_syscall_def_fd.O_ACCMODE & scall.def_fd_get_flags()
+                s.MixinSyscallDefFd.O_ACCMODE & scall.def_fd_get_flags()
             )
             if scall.def_fd_get_flags() & os.O_CREAT:
                 record_file_create(fd_path)

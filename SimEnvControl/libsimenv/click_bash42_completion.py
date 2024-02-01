@@ -9,7 +9,6 @@ from click.shell_completion import (
     add_completion_class
 )
 
-
 # Only Bash >= 4.4 has the nosort option.
 _SOURCE_PATCHED_BASH = """\
 %(complete_func)s() {
@@ -52,9 +51,11 @@ _SOURCE_PATCHED_BASH = """\
 %(complete_func)s_setup;
 """
 
+
 class _PatchedBashComplete(BashComplete):
     """ Patched Shell completion for Bash """
     source_template = _SOURCE_PATCHED_BASH
+
     # Turn off the original version check
     def _check_version(self): pass
 

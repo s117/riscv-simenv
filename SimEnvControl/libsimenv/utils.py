@@ -26,6 +26,7 @@ def sha256(fpath, use_cache=True):
 
 
 def is_valid_sha256(h):
+    # type: (str) -> bool
     return len(h) == 64 and all(_ in string.hexdigits for _ in h)
 
 
@@ -46,10 +47,59 @@ def remove_path(p):
     return True, "Success"
 
 
+def human_readable_size(size):
+    # type: (int) -> (float, str)
+    DIV_KB = 1 << 10
+    DIV_MB = DIV_KB << 10
+    DIV_GB = DIV_MB << 10
+    DIV_TB = DIV_GB << 10
+
+    if size < DIV_KB:
+        return size, "B"
+    elif size < DIV_MB:
+        return size / DIV_KB, "K"
+    elif size < DIV_GB:
+        return size / DIV_MB, "M"
+    elif size < DIV_TB:
+        return size / DIV_GB, "G"
+    else:
+        return size / DIV_TB, "T"
+
+
+def get_size(path):
+    # type: (str) -> (float, str)
+
+    if os.path.isfile(path):
+        total_size = os.path.getsize(path)
+    else:
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                # skip if it is symbolic link
+                if not os.path.islink(fp):
+                    total_size += os.path.getsize(fp)
+
+    return human_readable_size(total_size)
+
+
+def get_size_str(path):
+    # type: (str) -> str
+    size = get_size(path)
+    if isinstance(size[0], int):
+        str_size = "%d %s" % size
+    else:
+        assert isinstance(size[0], float)
+        str_size = "%.1f %s" % size
+    return str_size
+
+
 def fatal(s):
+    # type: (str) -> None
     print("Fatal: %s" % s, file=sys.stderr)
     sys.exit(-1)
 
 
 def warning(s):
+    # type: (str) -> None
     print("Warning: %s" % s, file=sys.stderr)

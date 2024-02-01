@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "riscv-simenv"
-version = "0.7.0"
+version = "0.8.0"
 description = "A tool to reliably pack and spawn a RISC-V workload (app) for simulation."
 authors = ["Jiayang Li <jli95@ncsu.edu>"]
 license = "Other/Proprietary License"
@@ -20,17 +20,18 @@ exclude = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.8"
 PyYAML = "^6.0.1"
-click = "^8.0.4"
-pyparsing = "^3.0.7"
-bashlex = "^0.16"
+click = "^8.1.7"
+pyparsing = "^3.1.1"
+bashlex = "^0.18"
 fuzzywuzzy = "^0.18.0"
-python-Levenshtein = "^0.12.2"
-natsort = "^8.1.0"
+natsort = "^8.4.0"
+levenshtein = "^0.24.0"
+tabulate = "^0.9.0"
 
-[tool.poetry.dev-dependencies]
-coverage = "^5.3"
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.4.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -38,4 +39,3 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 riscv-simenv = "SimEnvControl.sim_env_cli:cli"
-riscv-app-repo = "SimEnvControl.app_repo_cli:cli"

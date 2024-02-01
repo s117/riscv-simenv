@@ -9,12 +9,15 @@ APP_MEMSIZE = {app_memsize}
 SIM = {sim_cmd}
 SIM_FLAGS = {sim_flags}
 FESVR_FLAGS = {fesvr_flags}
+PK_PATH = $(SIMENV_SYSROOT){app_pk_path}
 PK_FLAGS = {pk_flags}
 
 SIM_FLAGS_EXTRA =
 FESVR_FLAGS_EXTRA =
 PK_FLAGS_EXTRA =
 APP_CMD_EXTRA =
+
+{extra_recipes}
 
 .PHONY: cleanrun cleangdb envsetup envcheck envclean run gdb app_target_cwd app_target_cmd app_mem
 
@@ -35,11 +38,18 @@ envclean:
 
 run: envcheck
 	@ echo Starting simulation
-	$(SIM) -m$(APP_MEMSIZE) $(SIM_FLAGS) $(SIM_FLAGS_EXTRA) $(FESVR_FLAGS) $(FESVR_FLAGS_EXTRA) +chroot=$(SIMENV_SYSROOT) +target-cwd=$(APP_INIT_CWD) pk $(PK_FLAGS) $(PK_FLAGS_EXTRA) $(APP_CMD) $(APP_CMD_EXTRA)
+	$(SIM) -m$(APP_MEMSIZE) $(SIM_FLAGS) $(SIM_FLAGS_EXTRA) \
+	    $(FESVR_FLAGS) $(FESVR_FLAGS_EXTRA) +chroot=$(SIMENV_SYSROOT) +target-cwd=$(APP_INIT_CWD) \
+	    $(PK_PATH) $(PK_FLAGS) $(PK_FLAGS_EXTRA) \
+	    $(APP_CMD) $(APP_CMD_EXTRA)
 
 gdb: envcheck
 	@ echo Starting simulation in gdb
-	gdb --args $(SIM) -m$(APP_MEMSIZE) $(SIM_FLAGS) $(SIM_FLAGS_EXTRA) $(FESVR_FLAGS) $(FESVR_FLAGS_EXTRA) +chroot=$(SIMENV_SYSROOT) +target-cwd=$(APP_INIT_CWD) pk $(PK_FLAGS) $(PK_FLAGS_EXTRA) $(APP_CMD) $(APP_CMD_EXTRA)
+	gdb --args \
+	    $(SIM) -m$(APP_MEMSIZE) $(SIM_FLAGS) $(SIM_FLAGS_EXTRA) \
+	    $(FESVR_FLAGS) $(FESVR_FLAGS_EXTRA) +chroot=$(SIMENV_SYSROOT) +target-cwd=$(APP_INIT_CWD) \
+	    $(PK_PATH) $(PK_FLAGS) $(PK_FLAGS_EXTRA) \
+	    $(APP_CMD) $(APP_CMD_EXTRA)
 
 app_target_cwd:
 	@ echo "$(APP_INIT_CWD)"

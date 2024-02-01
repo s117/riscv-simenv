@@ -1,17 +1,17 @@
-from typing import Dict, Any, Optional, Callable, Tuple, Union
 import pathlib
+from typing import Dict, Any, Optional, Callable, Tuple, Union
 
 from ..syscalls import syscall
-from ..syscalls.sys_openat import sys_openat
-from ..syscalls.sys_fcntl import sys_fcntl
-from ..syscalls.sys_close import sys_close
 from ..syscalls.sys_chdir import sys_chdir
+from ..syscalls.sys_close import sys_close
+from ..syscalls.sys_fcntl import sys_fcntl
+from ..syscalls.sys_openat import sys_openat
 
 
 class FileDescriptorTracker:
     def __init__(self, initial_cwd):
         # type: (str) -> None
-        self.active_fds = dict()  # type: Dict[int, Tuple[str, int, Optional[Union[syscall.syscall, syscall.mixin_syscall_def_fd]]]]
+        self.active_fds = dict()  # type: Dict[int, Tuple[str, int, Optional[Union[syscall.Syscall, syscall.MixinSyscallDefFd]]]]
 
         self.triggers = {
             "sys_openat": self.on_sys_openat,
@@ -24,7 +24,7 @@ class FileDescriptorTracker:
         self.on_sys_chdir(
             sys_chdir(
                 name="sys_chdir",
-                args=[syscall.arg_ptr("path", "path_in_t", 0, initial_cwd)],
+                args=[syscall.SyscallArgStrPtr("path", "path_in_t", 0, initial_cwd)],
                 ret=0,
                 syscall_id=49,
                 at_cwd=initial_cwd,
@@ -37,7 +37,7 @@ class FileDescriptorTracker:
         return self.active_fds[syscall.AT_FDCWD][0]
 
     def lookup_def(self, fd):
-        # type: (int) -> Optional[Union[syscall.syscall, syscall.mixin_syscall_def_fd]]
+        # type: (int) -> Optional[Union[syscall.Syscall, syscall.MixinSyscallDefFd]]
         if fd in self.active_fds:
             return self.active_fds[fd][2]
         return None
@@ -100,7 +100,7 @@ class FileDescriptorTracker:
             )
 
     def on_syscall(self, s, start, end):
-        # type: (syscall.syscall, int, int) -> None
+        # type: (syscall.Syscall, int, int) -> None
         syscall_name = s.name
         if syscall_name in self.triggers:
             self.triggers[syscall_name](s)

@@ -1,6 +1,6 @@
 import os
 import pathlib
-from typing import Dict
+from typing import Dict, Iterable, Optional
 
 
 class TargetPathConverter:
@@ -25,6 +25,7 @@ class TargetPathConverter:
 
     @staticmethod
     def _convert(path, anchors, mapping):
+        # type: (str, Iterable[str], Dict[str, str]) -> Optional[str]
         """
         convert path using rules given by anchors and mapping
         path - the path to convert
@@ -40,11 +41,13 @@ class TargetPathConverter:
         return None
 
     def t2h(self, target_path):
+        # type: (str) -> Optional[str]
         if not pathlib.PurePosixPath(target_path).is_absolute():
             raise ValueError("Only absolute path can be converted")
         return self._convert(target_path, self.target_anchors, self.t2h_mapping)
 
     def h2t(self, host_path):
+        # type: (str) -> Optional[str]
         if not pathlib.PurePosixPath(host_path).is_absolute():
             raise ValueError("Only absolute path can be converted")
         return self._convert(host_path, self.host_anchors, self.h2t_mapping)

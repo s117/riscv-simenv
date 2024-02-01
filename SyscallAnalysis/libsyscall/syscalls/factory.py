@@ -1,11 +1,13 @@
-from typing import Optional, Dict, List, Any
+from typing import List
 
-_FACTORY_REGISTER = None  # type: Optional[Dict]
-_DEFAULT_FACTORY = None
+from .syscall import Syscall
+
+_FACTORY_REGISTER = {}
+_DEFAULT_FACTORY = Syscall
 
 
 def _init_register():
-    from . import syscall
+    # type: () -> None
     from . import sys_exit
     from . import sys_read
     from . import sys_pread
@@ -30,9 +32,7 @@ def _init_register():
     from . import sys_getrandom
     from . import sys_renameat2
     from . import sys_readlinkat
-    global _DEFAULT_FACTORY
     global _FACTORY_REGISTER
-    _DEFAULT_FACTORY = syscall.syscall
     _FACTORY_REGISTER = {
         "sys_exit": sys_exit.sys_exit,
         "sys_read": sys_read.sys_read,
@@ -62,7 +62,7 @@ def _init_register():
 
 
 def construct_syscall(name, args, ret, syscall_id, at_cwd, seq_no):
-    # type: (str, List, int, int, str, int) -> Any
-    if _FACTORY_REGISTER is None:
+    # type: (str, List, int, int, str, int) -> Syscall
+    if not _FACTORY_REGISTER:
         _init_register()
     return _FACTORY_REGISTER.get(name, _DEFAULT_FACTORY)(name, args, ret, syscall_id, at_cwd, seq_no)

@@ -1,25 +1,31 @@
 #!/usr/bin/env python3
 import os.path
+import shutil
+import sys
+from typing import Tuple
 
 import click
 
-from SimEnvControl.libsimenv.repo_path import create_repo, get_manifests_dir, get_checkpoints_dir, get_sysroots_dir
-from SimEnvControl.libsimenv.sysroots_db import get_pristine_sysroot_dir
-from .libsimenv.app_manifest import *
-from .libsimenv.autocomplete import complete_app_names
-from .libsimenv.checkpoints_db import *
-from .libsimenv.manifest_db import *
-from .libsimenv.utils import *
+from ..libsimenv.app_manifest import verify_manifest_format, Manifest_t
+from ..libsimenv.autocomplete import complete_app_names
+from ..libsimenv.checkpoints_db import get_app_ckpt_dir
+from ..libsimenv.manifest_db import is_app_available, prompt_app_name_suggestion, load_from_manifest_db, \
+    get_manifest_path
+from ..libsimenv.repo_path import create_repo, get_manifests_dir, get_checkpoints_dir, get_sysroots_dir, \
+    get_repo_components_path
+from ..libsimenv.sysroots_db import get_pristine_sysroot_dir
+from ..libsimenv.utils import warning
 
 
 def discover_files(manifest_db_path, checkpoints_archive_path, sysroots_archive_path, app_name):
+    # type: (str, str, str, str) -> Tuple[Manifest_t, str, str, str]
     if not is_app_available(app_name, manifest_db_path):
         print("Fatal: No manifest file for app '%s'" % app_name, file=sys.stderr)
         prompt_app_name_suggestion(app_name, manifest_db_path)
         sys.exit(-1)
 
     manifest = load_from_manifest_db(app_name, manifest_db_path)
-    verify_manifest_format(manifest)
+    verify_manifest_format(manifest, skip_fs_access=True)
 
     manifest_path = get_manifest_path(manifest_db_path, app_name)
     sysroot_dir = get_pristine_sysroot_dir(sysroots_archive_path, manifest["app_pristine_sysroot"])
@@ -29,6 +35,7 @@ def discover_files(manifest_db_path, checkpoints_archive_path, sysroots_archive_
 
 
 def xcopy(src_path, dst_path):
+    # type: (str, str) -> None
     if os.path.isdir(src_path):
         print("Copying dir %s -> %s" % (src_path, dst_path))
         shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
@@ -38,19 +45,16 @@ def xcopy(src_path, dst_path):
 
 
 @click.command()
-@click.option("--repo-path", required=True, type=click.Path(exists=True, dir_okay=True, file_okay=False),
-              help="The app repository path.")
+@click.pass_context
 @click.option("-c", "--checkpoints", is_flag=True,
               help="Include checkpoints.")
 @click.argument("new-repo-root", nargs=1, type=click.Path(exists=False))
 @click.argument("app-names", nargs=-1, type=click.STRING, shell_complete=complete_app_names)
-def subrepo(repo_path, checkpoints, new_repo_root, app_names):
+def cmd_sub_repo(ctx, checkpoints, new_repo_root, app_names):
     """
     Spawn a sub-repository with the selected apps.
     """
-    manifest_db_path = get_manifests_dir(repo_path)
-    checkpoints_archive_path = get_checkpoints_dir(repo_path)
-    sysroots_archive_path = get_sysroots_dir(repo_path)
+    sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
 
     app_info_list = dict()
     for app_name in app_names:
@@ -102,4 +106,4 @@ def subrepo(repo_path, checkpoints, new_repo_root, app_names):
 
 
 if __name__ == '__main__':
-    subrepo()
+    cmd_sub_repo()

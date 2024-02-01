@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import sys
 
@@ -6,10 +5,11 @@ import click
 
 from SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo
 from SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
-from .libsimenv.app_manifest import verify_manifest_format
-from .libsimenv.autocomplete import complete_app_names
-from .libsimenv.manifest_db import load_from_manifest_db, prompt_app_name_suggestion
-from .libsimenv.utils import sha256, is_valid_sha256, fatal
+from ..libsimenv.app_manifest import verify_manifest_format, Manifest_t
+from ..libsimenv.autocomplete import complete_app_names
+from ..libsimenv.manifest_db import load_from_manifest_db, prompt_app_name_suggestion
+from ..libsimenv.repo_path import get_repo_components_path
+from ..libsimenv.utils import sha256, is_valid_sha256, fatal
 
 warnings = dict()
 failures = dict()
@@ -28,11 +28,14 @@ def add_failure(pname, fail):
 
 
 def has_read_perm(pname):
+    # type: (str) -> bool
     return os.access(pname, os.R_OK)
 
 
 def has_write_perm(pname):
+    # type: (str) -> bool
     def check_dir_writeable(dirname):
+        # type: (str) -> bool
         if os.path.isdir(dirname):
             return os.access(dirname, os.W_OK)
         pdir = os.path.dirname(dirname)
@@ -49,6 +52,7 @@ def has_write_perm(pname):
 
 
 def check_exist(pname):
+    # type: (str) -> bool
     if not os.path.exists(pname):
         add_failure(pname, "Path not exist")
         return False
@@ -56,6 +60,7 @@ def check_exist(pname):
 
 
 def check_read(pname):
+    # type: (str) -> bool
     if not check_exist(pname):
         return False
     if not has_read_perm(pname):
@@ -65,6 +70,7 @@ def check_read(pname):
 
 
 def check_write(pname, non_exist_ok):
+    # type: (str, bool) -> bool
     if not non_exist_ok and not check_exist(pname):
         return False
     if not has_write_perm(pname):
@@ -74,6 +80,7 @@ def check_write(pname, non_exist_ok):
 
 
 def check_isdir(pname):
+    # type: (str) -> bool
     if not os.path.isdir(pname):
         add_failure(pname, "Path is not a DIR")
         return False
@@ -81,6 +88,7 @@ def check_isdir(pname):
 
 
 def check_isfile(pname):
+    # type: (str) -> bool
     if not os.path.isfile(pname):
         add_failure(pname, "Path is not a FILE")
         return False
@@ -88,6 +96,7 @@ def check_isfile(pname):
 
 
 def check_hash(pname, expect):
+    # type: (str, str) -> bool
     if expect is None:
         return True
     elif expect == 'SKIP':
@@ -112,6 +121,7 @@ def check_hash(pname, expect):
 
 
 def perform_manifest_fsck(manifest, target_sysroot):
+    # type: (Manifest_t, str) -> None
     path_converter = TargetPathConverter({"/": os.path.abspath(target_sysroot)})
     for pname, details in manifest['fs_access'].items():
         host_path = path_converter.t2h(pname)
@@ -142,16 +152,20 @@ def perform_manifest_fsck(manifest, target_sysroot):
 @click.pass_context
 @click.argument("app-name", shell_complete=complete_app_names, type=click.STRING)
 @click.argument("simenv-path", type=click.Path(exists=True, dir_okay=True, file_okay=False))
-def verify(ctx, app_name, simenv_path):
+def cmd_env_verify(ctx, app_name, simenv_path):
     """
     Perform integrity checking for a simenv.
     """
-    manifest_db_path = ctx.obj['manifest_db_path']
+    _, manifest_db_path, _ = get_repo_components_path(ctx.obj["repo_path"])
+
     print("Begin pre-run file environment checking: %s @ [%s]" % (app_name, simenv_path))
     print()
 
     try:
         manifest = load_from_manifest_db(app_name, manifest_db_path)
+        if "fs_access" not in manifest:
+            print(f"Cannot verify {app_name} because its manifest doesn't include FS access information")
+            sys.exit(-1)
         verify_manifest_format(manifest)
     except FileNotFoundError:
         print("Fatal: No manifest file for app '%s'" % app_name, file=sys.stderr)
@@ -180,4 +194,4 @@ def verify(ctx, app_name, simenv_path):
 
 
 if __name__ == '__main__':
-    verify()
+    cmd_env_verify()

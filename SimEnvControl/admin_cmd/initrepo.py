@@ -1,15 +1,14 @@
-#!/usr/bin/env python3
 import os
 
 import click
 
-from SimEnvControl.libsimenv.repo_path import create_repo
-from .libsimenv.utils import fatal
+from ..libsimenv.repo_path import create_repo
+from ..libsimenv.utils import fatal
 
 
 @click.command()
-@click.argument("new-repo-root", type=click.Path(exists=False))
-def init(new_repo_root):
+@click.argument("new-repo-root", type=click.Path(exists=False, dir_okay=False, file_okay=False))
+def cmd_init_repo(new_repo_root):
     """
     Create an empty app repository.
     """
@@ -23,4 +22,4 @@ def init(new_repo_root):
 
 
 if __name__ == '__main__':
-    init()
+    cmd_init_repo()

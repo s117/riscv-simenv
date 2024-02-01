@@ -2,8 +2,8 @@ import os
 
 import click
 
-from SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
 from SyscallAnalysis.libsyscall.analyzer.file_usage import stat_file_usage
+from SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
 
 
 @click.command()

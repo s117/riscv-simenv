@@ -1,19 +1,19 @@
-#!/usr/bin/env python3
 import os
 import sys
 from collections import defaultdict
 
 import click
-
 from natsort import natsorted
 
-from .libsimenv.autocomplete import complete_app_names
-from .libsimenv.manifest_db import glob_all_checkpoints, get_avail_apps_in_db, prompt_app_name_suggestion, \
+from ..libsimenv.autocomplete import complete_app_names
+from ..libsimenv.checkpoints_db import glob_all_checkpoints
+from ..libsimenv.manifest_db import get_avail_apps_in_db, prompt_app_name_suggestion, \
     is_app_available
-from .libsimenv.utils import fatal
+from ..libsimenv.repo_path import get_repo_components_path
 
 
 def prompt_avail_app_name(manifest_db_path, checkpoint_db_path):
+    # type: (str, str) -> None
     all_available_app_names = natsorted(get_avail_apps_in_db(manifest_db_path))
     apps_chkpts = defaultdict(tuple, glob_all_checkpoints(checkpoint_db_path))
     if all_available_app_names:
@@ -30,6 +30,7 @@ def prompt_avail_app_name(manifest_db_path, checkpoint_db_path):
 
 
 def prompt_apps_checkpoint(app_names, checkpoints_db_path):
+    # type: (str, str) -> None
     apps_chkpts = glob_all_checkpoints(checkpoints_db_path)
     for app in app_names:
         if app in apps_chkpts:
@@ -38,7 +39,7 @@ def prompt_apps_checkpoint(app_names, checkpoints_db_path):
                 print("   %s" % app_chkpt)
             print()
         else:
-            print("No checkpoint available for '%s'.", app)
+            print("No checkpoint available for '%s'." % app)
             print()
 
 
@@ -47,18 +48,11 @@ def prompt_apps_checkpoint(app_names, checkpoints_db_path):
 @click.argument("app-names", type=click.STRING, nargs=-1, shell_complete=complete_app_names)
 @click.option("-b", "--brief", is_flag=True,
               help="Brief output, useful for script parsing.")
-def list_app(ctx, app_names, brief):
+def cmd_list(ctx, app_names, brief):
     """
     List available apps and checkpoints in the SimEnv repository.
     """
-    manifest_db_path = ctx.obj['manifest_db_path']
-    checkpoints_archive_path = ctx.obj['checkpoints_archive_path']
-    if not checkpoints_archive_path or not manifest_db_path:
-        fatal(
-            "Repository root is not set properly.\n"
-            "Specify it using --repo-path or environment variable 'RISCV_SIMENV_REPO_PATH'."
-        )
-        sys.exit(-1)
+    _, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
 
     for app in app_names:
         if not is_app_available(app, manifest_db_path):
@@ -83,4 +77,4 @@ def list_app(ctx, app_names, brief):
 
 
 if __name__ == '__main__':
-    list_app()
+    cmd_list()

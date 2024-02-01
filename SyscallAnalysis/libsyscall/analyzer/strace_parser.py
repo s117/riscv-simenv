@@ -1,6 +1,7 @@
 import base64
 
-from pyparsing import *
+from pyparsing import Suppress, Word, alphas, alphanums, Regex, oneOf, Group, ZeroOrMore, StringEnd, \
+    ParseFatalException, ParseResults
 
 
 class StraceInputParser:
@@ -64,6 +65,7 @@ class StraceInputParser:
 
     @classmethod
     def stringify(cls, s):
+        # type: (ParseResults) -> str
         ret = ["[%d] %s (" % (s.syscall_id, s.syscall_name)]
         for arg in s.syscall_args:
             arg_line = "  %s %s = " % (arg.arg_type, arg.arg_name)

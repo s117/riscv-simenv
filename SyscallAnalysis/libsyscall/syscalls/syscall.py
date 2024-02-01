@@ -1,11 +1,11 @@
 import os
 import pathlib
-from typing import List, Any, Union
+from typing import List, Union
 
 AT_FDCWD = -100
 
 
-class path:
+class GenericPath:
     def __init__(self, base, pathname):
         # type: (str, str) -> None
         self.base = pathlib.PurePosixPath(base)
@@ -48,8 +48,8 @@ class path:
         return _resolve(base, str(self.rpath)) or sep
 
     def contains(self, p):
-        # type: (path) -> bool
-        assert isinstance(p, path)
+        # type: (GenericPath) -> bool
+        assert isinstance(p, GenericPath)
 
         p_abspath = p.abspath()
         this_abspath = self.abspath()
@@ -61,31 +61,32 @@ class path:
             return False
 
     def __eq__(self, other):
+        # type: (GenericPath) -> bool
         return isinstance(other, self.__class__) and self.base == other.base and self.rpath == other.rpath
 
     def __hash__(self):
+        # type: () -> int
         return (hash(self.base) << 1) ^ hash(self.rpath)
 
 
-class arg_val:
+class SyscallArgInteger:
     def __init__(self, aname, atype, avalue):
-        # type: (str, str, Any) -> None
-        self.amemval = None
+        # type: (str, str, int) -> None
         self.aname = aname
         self.atype = atype
         self.avalue = avalue
 
 
-class arg_ptr(arg_val):
+class SyscallArgStrPtr(SyscallArgInteger):
     def __init__(self, aname, atype, avalue, amemval):
-        # type: (str, str, Any, Any) -> None
+        # type: (str, str, int, str) -> None
         super().__init__(aname, atype, avalue)
         self.amemval = amemval
 
 
-class syscall:
+class Syscall:
     def __init__(self, name, args, ret, syscall_id, at_cwd, seq_no):
-        # type: (str, List[Union[arg_val, arg_ptr]], int, int, str, int) -> None
+        # type: (str, SyscallArgList_t, int, int, str, int) -> None
         self.name = name
         self.args = args
         self.ret = ret
@@ -94,10 +95,11 @@ class syscall:
         self.at_cwd = at_cwd
 
     def __str__(self):
+        # type: () -> str
         ret = ["[%d] %s (" % (self.syscall_id, self.name)]
         for arg in self.args:
             arg_line = "  %s %s = " % (arg.atype, arg.aname)
-            if isinstance(arg, arg_ptr):
+            if isinstance(arg, SyscallArgStrPtr):
                 arg_line += "%s|%s|" % (hex(arg.avalue), arg.amemval)
             else:
                 arg_line += "%d" % arg.avalue
@@ -110,57 +112,70 @@ class syscall:
         raise NotImplementedError()
 
 
-class mixin_syscall_def_fd:
+class MixinSyscallDefFd:
     O_ACCMODE = os.O_RDONLY | os.O_WRONLY | os.O_RDWR
 
     def __init__(self, *args, **kwargs):
-        self.use_list = list()  # type: List[Union[syscall, mixin_syscall_use_fd]]
+        self.use_list = list()  # type: List[Union[Syscall, MixinSyscallUseFd]]
 
     def def_fd_add_use(self, fd_use):
-        # type: (Union[syscall, mixin_syscall_use_fd]) -> int
+        # type: (Union[Syscall, MixinSyscallUseFd]) -> int
         ret_val = len(self.use_list)
         self.use_list.append(fd_use)
         return ret_val
 
     def def_fd_get_path(self):
-        # type: () -> path
+        # type: () -> GenericPath
         raise NotImplementedError()
 
     def def_fd_get_flags(self):
-        # type: () -> bool
+        # type: () -> int
         raise NotImplementedError()
 
     def def_fd_flags_can_read(self):
+        # type: () -> bool
         accmode = self.def_fd_get_flags() & self.O_ACCMODE
         return (accmode == os.O_RDONLY) or (accmode == os.O_RDWR)
 
     def def_fd_flags_can_write(self):
+        # type: () -> bool
         accmode = self.def_fd_get_flags() & self.O_ACCMODE
         return (accmode == os.O_WRONLY) or (accmode == os.O_RDWR)
 
 
-class mixin_syscall_use_fd:
+class MixinSyscallUseFd:
     def __init__(self, *args, **kwargs):
-        self.def_list = list()  # type: List[Union[syscall, mixin_syscall_def_fd]]
+        self.def_list = list()  # type: List[Union[Syscall, MixinSyscallDefFd]]
 
     def use_fd_add_def(self, fd_def):
-        # type: (Union[syscall, mixin_syscall_def_fd]) -> int
+        # type: (Union[Syscall, MixinSyscallDefFd]) -> int
         ret_val = len(self.def_list)
         self.def_list.append(fd_def)
-        # fd_def.def_fd_add_use(self)
         return ret_val
+
+    def check_fd_def(self, idx):
+        # type: (int) -> None
+        use_list = self.use_fd_get_fds()
+        assert len(use_list) == len(self.def_list)
+        fd_use = use_list[idx]
+        fd_def = self.def_list[idx]
+        if fd_def is None:
+            raise ValueError(
+                f"Cannot analyze the {self.seq_no}th syscall: {self.name} used a FD {fd_use}, "
+                "but the analyzer failed to supply the define of this FD."
+            )
 
     def use_fd_get_fds(self):
         # type: () -> List[int]
         raise NotImplementedError()
 
 
-class mixin_syscall_has_path_args:
+class MixinSyscallHasPathArgs:
     def __init__(self, *args, **kwargs):
         pass
 
     def get_arg_paths(self):
-        # type: () -> List[path]
+        # type: () -> GenericPathList_t
         raise NotImplementedError()
 
 
@@ -182,11 +197,16 @@ def mixedomatic(cls):
     return cls
 
 
+SyscallArg_t = Union[SyscallArgInteger, SyscallArgStrPtr]
+SyscallArgList_t = List[SyscallArg_t]
+GenericPathList_t = List[GenericPath]
+
+
 def main():
     pass
 
     def test_resolve(_base, _path, _expect):
-        _actual = path(_base, _path).abspath()
+        _actual = GenericPath(_base, _path).abspath()
         print("[%s] %s + %s, Expect [%s], Actual [%s]" % (_actual == _expect, _base, _path, _expect, _actual))
 
     test_resolve("/", "", "/")
