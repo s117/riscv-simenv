@@ -1,4 +1,4 @@
-TOP_DIR = $(PWD)
+TOP_DIR = $(CURDIR)
 SIMENV_SYSROOT = $(TOP_DIR)/simenv
 
 APP_NAME = {app_name}
