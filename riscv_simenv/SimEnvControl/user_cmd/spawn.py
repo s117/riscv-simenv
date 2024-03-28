@@ -5,8 +5,8 @@ import sys
 
 import click
 
-from SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo
-from SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
+from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo
+from riscv_simenv.SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
 from ..libsimenv.app_manifest import verify_manifest_format, Manifest_t
 from ..libsimenv.autocomplete import complete_app_names
 from ..libsimenv.manifest_db import load_from_manifest_db, prompt_app_name_suggestion

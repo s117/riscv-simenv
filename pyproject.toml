@@ -12,8 +12,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
 ]
 packages = [
-    { include = "SimEnvControl" },
-    { include = "SyscallAnalysis" },
+    { include = "riscv_simenv" },
 ]
 exclude = [
     "debug_entry",
@@ -38,4 +37,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-riscv-simenv = "SimEnvControl.sim_env_cli:cli"
+riscv-simenv = "riscv_simenv.SimEnvControl.sim_env_cli:cli"

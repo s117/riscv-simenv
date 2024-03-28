@@ -2,7 +2,7 @@ import os
 import pathlib
 from typing import Optional
 
-from SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
+from riscv_simenv.SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
 from .utils import sha256
 
 
