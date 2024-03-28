@@ -16,4 +16,4 @@ bootstrap-run:
 bootstrap-analyze:
 	@ echo Bootstrap app $(APP_NAME) - SimEnv Analyze
 	@ echo Analyzing the data collected from the bootstrap run...
-	riscv-simenv --repo-path "$(REPO_PATH)" repo add analyze $(APP_NAME) --syscall-trace "$(SYSCALL_TRACE_PATH)" --post-sim-sysroot-path "$(SIMENV_SYSROOT)"
+	riscv-simenv --repo-path "$(REPO_PATH)" repo add app analyze $(APP_NAME) --syscall-trace "$(SYSCALL_TRACE_PATH)" --post-sim-sysroot-path "$(SIMENV_SYSROOT)"
