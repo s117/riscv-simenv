@@ -16,8 +16,6 @@ from ...libsimenv.utils import fatal, remove_path
               help="Delete all checkpoint of a given app")
 def cmd_rm_checkpoint(ctx, app_name, checkpoint_names, remove_all):
     sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
-    if not is_app_available(app_name, manifest_db_path):
-        fatal(f"app {app_name} not exist!")
 
     app_checkpoint_list = get_available_checkpoints_for_app(checkpoints_archive_path, app_name)
     app_checkpoints_dir = get_app_ckpt_dir(checkpoints_archive_path, app_name)
