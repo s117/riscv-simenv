@@ -3,9 +3,9 @@ import os
 import pathlib
 from typing import Dict, Union, TextIO, Set, Tuple
 
-from SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo, stat_file_usage
-from SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
-from SyscallAnalysis.libsyscall.syscalls.syscall import GenericPath
+from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo, stat_file_usage
+from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
+from riscv_simenv.SyscallAnalysis.libsyscall.syscalls.syscall import GenericPath
 from .content_manager import ContentManager
 from .shcmd_utils import extract_stdin_file_from_shcmd
 from .utils import fatal, warning, is_valid_sha256

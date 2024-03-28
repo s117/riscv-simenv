@@ -2,7 +2,7 @@ import os
 
 import click
 
-from SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
+from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
 
 
 @click.command()
