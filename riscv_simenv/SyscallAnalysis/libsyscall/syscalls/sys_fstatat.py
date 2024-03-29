@@ -30,7 +30,7 @@ class sys_fstatat(s.Syscall, s.MixinSyscallHasPathArgs, s.MixinSyscallUseFd):
             #        If pathname is an empty string, operate on the file referred to by dirfd (which may have been obtained using the open(2) O_PATH flag).  In this case, dirfd can refer to
             #        any type of file, not just a directory, and the behavior of fstatat() is similar to that of fstat().  If dirfd is AT_FDCWD, the call operates on the current working di‐
             #        rectory.  This flag is Linux-specific; define _GNU_SOURCE to obtain its definition.
-            if self.dirfd in {1, 2, 3}:
+            if self.dirfd in {0, 1, 2}:
                 return []  # ignore fstat(STDIN/STDOUT/STDERR)
             self.check_fd_def(0)
             return [self.def_list[0].def_fd_get_path()]
