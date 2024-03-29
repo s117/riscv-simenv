@@ -17,25 +17,6 @@ class sys_readlinkat(s.Syscall, s.MixinSyscallHasPathArgs, s.MixinSyscallUseFd):
         self.pathname = args[1].amemval
         self.buf_ptr = args[2].avalue
         self.buf_size = args[3].avalue
-        # if ret > 0:
-        #     assert len(args) == 6
-        #     # if a link resolved successfully, two extra fields will be dumped by the FESVR:
-        #     #   1. extra_host_realname   - the resolved realname obtained by the host side
-        #     #   2. extra_target_realname - the converted realname sent to the target side
-        #     # FESVR Patch @ syscall.cc:539
-        #     #+ m_strace->syscall_record_param_path_name("extra_host_realname", (uint64_t)NULL, &path_buf[0], 'o');
-        #     #+ m_strace->syscall_record_param_path_name("extra_target_realname", (uint64_t)NULL, &target_path[0], 'o');
-        #
-        #     assert isinstance(args[4], s.SyscallArgStrPtr)
-        #     assert isinstance(args[5], s.SyscallArgStrPtr)
-        #     assert args[4].aname == "extra_host_realname"
-        #     assert args[5].aname == "extra_target_realname"
-        #     self.realname_host = args[4].amemval
-        #     self.realname_target = args[5].amemval
-        # else:
-        #     assert len(args) == 4
-        #     self.realname_host = None
-        #     self.realname_target = None
 
     def is_success(self):
         # type: () -> bool
