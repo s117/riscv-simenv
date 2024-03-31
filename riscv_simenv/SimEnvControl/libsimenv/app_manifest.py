@@ -149,6 +149,13 @@ def _ensure_str_type(manifest, key):
         raise ValueError("Field [%s] in the manifest is not a string: %s" % (key, manifest[key]))
 
 
+def _ensure_list_type(manifest, key):
+    # type: (Manifest_t, str) -> None
+    _ensure_exist(manifest, key)
+    if not isinstance(manifest[key], list):
+        raise ValueError("Field [%s] in the manifest is not a list: %s" % (key, manifest[key]))
+
+
 def _ensure_dict_type(manifest, key):
     # type: (Manifest_t, str) -> None
     _ensure_exist(manifest, key)
