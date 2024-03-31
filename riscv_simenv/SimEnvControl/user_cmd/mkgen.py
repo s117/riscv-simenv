@@ -83,7 +83,7 @@ def cmd_mkgen(ctx, app_name, checkpoint, bootstrap):
 
     try:
         manifest = load_from_manifest_db(app_name, manifest_db_path)
-        verify_manifest_format(manifest, skip_fs_access=True)
+        verify_manifest_format(manifest, skip_extra_field=True)
         if checkpoint and not check_checkpoint_exist(checkpoints_archive_path, app_name, checkpoint):
             fatal("App %s doesn't have checkpoint %s" % (app_name, checkpoint))
     except FileNotFoundError:

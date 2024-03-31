@@ -28,7 +28,7 @@ def cmd_add_app_analyze(ctx, syscall_trace, post_sim_sysroot_path, app_name):
 
     try:
         manifest = load_from_manifest_db(app_name, manifest_db_path)
-        verify_manifest_format(manifest, skip_fs_access=True)
+        verify_manifest_format(manifest, skip_extra_field=True)
     except FileNotFoundError:
         print("Fatal: No manifest file for app '%s'. Did you bootstrap it first?" % app_name, file=sys.stderr)
         prompt_app_name_suggestion(app_name, manifest_db_path)
