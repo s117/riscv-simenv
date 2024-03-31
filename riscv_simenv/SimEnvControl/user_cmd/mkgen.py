@@ -70,7 +70,7 @@ def mkgen_normal(manifest, checkpoint_to_load_path):
 @click.command()
 @click.pass_context
 @click.argument("app-name", shell_complete=complete_app_names, type=click.STRING)
-@click.option("-f", "--checkpoint", shell_complete=complete_chkpt_names,
+@click.option("-c", "--checkpoint", shell_complete=complete_chkpt_names,
               help="If give and exist, the generated makefile will load the given checkpoint by default.")
 @click.option("--bootstrap", is_flag=True,
               help="Generate a bootstrap Makefile (will override all other options).")
