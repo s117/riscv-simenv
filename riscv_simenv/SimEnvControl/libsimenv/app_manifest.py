@@ -31,7 +31,7 @@ def new_manifest(app_name, proxy_kernel, app_cmd, app_init_cwd, memsize, sysroot
 
 def update_manifest_fs_access(existing_manifest, pristine_sysroot_path, post_sim_sysroot_path, strace_fp):
     # type: (Manifest_t, str, str, TextIO) -> Manifest_t
-    verify_manifest_format(existing_manifest, skip_fs_access=True)
+    verify_manifest_format(existing_manifest, skip_extra_field=True)
 
     manifest = copy.deepcopy(existing_manifest)
     app_cmd = manifest["app_cmd"]
@@ -210,7 +210,7 @@ def verify_manifest_fs_access_format(manifest):
                 raise ValueError("Manifest['fs_access']['%s']['hash']['post-run'] is invalid." % fpath)
 
 
-def verify_manifest_format(manifest, skip_fs_access=False):
+def verify_manifest_format(manifest, skip_extra_field=False):
     # type: (Manifest_t, bool) -> bool
     _ensure_str_type(manifest, "app_name")
     _ensure_str_type(manifest, "app_proxy_kernel")
@@ -220,7 +220,7 @@ def verify_manifest_format(manifest, skip_fs_access=False):
     _ensure_int_type(manifest, "app_memsize")
     _ensure_in_set(manifest, "app_spawn_mode", {"copy", "link"})
 
-    if not skip_fs_access:
+    if not skip_extra_field:
         verify_manifest_fs_access_format(manifest)
 
     return True
@@ -229,7 +229,7 @@ def verify_manifest_format(manifest, skip_fs_access=False):
 def manifest_status(manifest):
     # type: (Manifest_t) -> Tuple[bool, bool]
     try:
-        verify_manifest_format(manifest, skip_fs_access=True)
+        verify_manifest_format(manifest, skip_extra_field=True)
     except ValueError:
         base_ok = False
     else:

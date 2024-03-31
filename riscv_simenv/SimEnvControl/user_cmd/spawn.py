@@ -137,7 +137,7 @@ def cmd_env_spawn(ctx, app_name, dest_dir, raw, force, copy_mode):
 
     try:
         manifest = load_from_manifest_db(app_name, manifest_db_path)
-        verify_manifest_format(manifest, skip_fs_access=raw)
+        verify_manifest_format(manifest, skip_extra_field=raw)
     except FileNotFoundError:
         print("Fatal: No manifest file for app '%s'" % app_name, file=sys.stderr)
         prompt_app_name_suggestion(app_name, manifest_db_path)

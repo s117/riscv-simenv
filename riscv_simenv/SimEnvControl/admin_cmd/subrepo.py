@@ -25,7 +25,7 @@ def discover_files(manifest_db_path, checkpoints_archive_path, sysroots_archive_
         sys.exit(-1)
 
     manifest = load_from_manifest_db(app_name, manifest_db_path)
-    verify_manifest_format(manifest, skip_fs_access=True)
+    verify_manifest_format(manifest, skip_extra_field=True)
 
     manifest_path = get_manifest_path(manifest_db_path, app_name)
     sysroot_dir = get_pristine_sysroot_dir(sysroots_archive_path, manifest["app_pristine_sysroot"])
