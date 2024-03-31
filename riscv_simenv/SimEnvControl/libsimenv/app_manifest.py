@@ -1,7 +1,8 @@
 import copy
+import json
 import os
 import pathlib
-from typing import Dict, Union, TextIO, Set, Tuple
+from typing import Dict, Union, TextIO, Set, Tuple, List
 
 from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo, stat_file_usage
 from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
@@ -10,7 +11,7 @@ from .content_manager import ContentManager
 from .shcmd_utils import extract_stdin_file_from_shcmd
 from .utils import fatal, warning, is_valid_sha256
 
-Manifest_t = Dict[str, Union[str, Dict]]
+Manifest_t = Dict[str, Union[str, Dict, List]]
 
 
 def new_manifest(app_name, proxy_kernel, app_cmd, app_init_cwd, memsize, sysroot_name, copy_spawn):
@@ -122,7 +123,28 @@ def update_manifest_fs_access(existing_manifest, pristine_sysroot_path, post_sim
     manifest_add_fs_access_entry(app_proxy_kernel, readonly_usage)
     print(f"Added proxy kernel [{app_proxy_kernel}] to manifest")
 
-    verify_manifest_format(manifest, skip_fs_access=False)
+    verify_manifest_fs_access_format(manifest)
+
+    return manifest
+
+
+def update_manifest_instret(existing_manifest, fesvr_final_state_fp):
+    # type: (Manifest_t, TextIO) -> Manifest_t
+    verify_manifest_format(existing_manifest, skip_extra_field=True)
+    manifest = copy.deepcopy(existing_manifest)
+
+    fesvr_final_state_dump = json.load(fesvr_final_state_fp)
+    instret = [s["instret"] for s in fesvr_final_state_dump["core_state"]]
+    print(f"The number of instructions executed by each core reported by the FESVR:")
+    for idx, coren_instret in enumerate(instret):
+        if not isinstance(coren_instret, int):
+            fatal(
+                f"In the final state dump json from FESVR, data['core_state'][{idx}]['instret'] is not an integer.")
+        print(f"  - core{idx}: {coren_instret} instructions")
+
+    manifest["instret"] = instret
+
+    verify_manifest_instret(manifest)
 
     return manifest
 
@@ -169,6 +191,19 @@ def _ensure_in_set(manifest, key, valid_set):
     if manifest[key] not in valid_set:
         raise ValueError(
             "Field [%s] in the manifest can only be one of the following value: %s" % (key, valid_set))
+
+
+def verify_manifest_instret(manifest):
+    # type: (Manifest_t) -> None
+    """
+    The manifest['instret'] is an array of number of instructions executed on each CPU core
+    when the app's execution is finished. It indicates the length of a benchmark in terms of
+    the total dynamic instruction count.
+    """
+    _ensure_list_type(manifest, "instret")
+    for idx, coren_instret in enumerate(manifest["instret"], start=1):
+        if not isinstance(coren_instret, int):
+            raise ValueError("The %dth element in manifest['instret'] is not an integer." % idx)
 
 
 def verify_manifest_fs_access_format(manifest):
@@ -222,18 +257,20 @@ def verify_manifest_format(manifest, skip_extra_field=False):
 
     if not skip_extra_field:
         verify_manifest_fs_access_format(manifest)
+        verify_manifest_instret(manifest)
 
     return True
 
 
 def manifest_status(manifest):
-    # type: (Manifest_t) -> Tuple[bool, bool]
+    # type: (Manifest_t) -> Tuple[bool, bool, bool]
     try:
         verify_manifest_format(manifest, skip_extra_field=True)
     except ValueError:
         base_ok = False
     else:
         base_ok = True
+
     try:
         verify_manifest_fs_access_format(manifest)
     except ValueError:
@@ -241,4 +278,11 @@ def manifest_status(manifest):
     else:
         fs_access_ok = True
 
-    return base_ok, fs_access_ok
+    try:
+        verify_manifest_instret(manifest)
+    except ValueError:
+        instret_ok = False
+    else:
+        instret_ok = True
+
+    return base_ok, fs_access_ok, instret_ok

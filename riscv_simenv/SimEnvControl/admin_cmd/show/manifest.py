@@ -18,11 +18,13 @@ def cmd_show_manifest(ctx):
     for app in natsorted(apps):
         app_manifest_path = get_manifest_path(manifest_db_path, app)
         app_manifest = load_from_manifest_db(app, manifest_db_path)
-        base_ok, fs_access_ok = manifest_status(app_manifest)
+        base_ok, fs_access_ok, instret_ok = manifest_status(app_manifest)
         if not base_ok:
             manifest_status_str = 'INVALID'
-        elif not fs_access_ok:
-            manifest_status_str = 'BASE'
+        elif fs_access_ok and not instret_ok:
+            manifest_status_str = 'BASE+FS_ACC'
+        elif not fs_access_ok and instret_ok:
+            manifest_status_str = 'BASE+INSTRET'
         else:
             manifest_status_str = 'FULL'
         manifest_size_str = get_size_str(app_manifest_path)
