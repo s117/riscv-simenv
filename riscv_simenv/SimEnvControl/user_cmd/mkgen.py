@@ -12,7 +12,7 @@ from ..libsimenv.shcmd_utils import add_base_to_stdin_file_in_shcmd
 from ..libsimenv.template_manager import instantiate_template
 from ..libsimenv.utils import fatal
 
-DEFAULT_CHECKPOINT_LOAD_FLAG = "-f"
+DEFAULT_CHECKPOINT_LOAD_FLAG = "-c"
 DEFAULT_SIMULATOR = "spike"
 BOOTSTRAP_SIMULATOR = "spike"
 
