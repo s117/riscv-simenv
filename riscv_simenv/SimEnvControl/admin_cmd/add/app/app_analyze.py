@@ -4,7 +4,7 @@ import sys
 
 import click
 
-from ....libsimenv.app_manifest import update_manifest_fs_access, verify_manifest_format
+from ....libsimenv.app_manifest import update_manifest_fs_access, update_manifest_instret, verify_manifest_format
 from ....libsimenv.autocomplete import complete_app_names
 from ....libsimenv.manifest_db import save_to_manifest_db, load_from_manifest_db, prompt_app_name_suggestion
 from ....libsimenv.repo_path import get_repo_components_path
@@ -16,11 +16,13 @@ from ....libsimenv.utils import fatal
 @click.pass_context
 @click.option("-s", "--syscall-trace", required=True, type=click.File(),
               help="The FESVR syscall trace file.")
+@click.option("-f", "--final-state-json", required=True, type=click.File(),
+              help="The FESVR final state registers dump.")
 @click.option("-d", "--post-sim-sysroot-path", required=True,
               type=click.Path(exists=True, dir_okay=True, file_okay=False),
               help="The path to the sysroot after the app has run.")
 @click.argument("app-name", shell_complete=complete_app_names, type=click.STRING)
-def cmd_add_app_analyze(ctx, syscall_trace, post_sim_sysroot_path, app_name):
+def cmd_add_app_analyze(ctx, syscall_trace, final_state_json, post_sim_sysroot_path, app_name):
     """
     Analyze an app for how to create SimEnv.
     """
@@ -43,5 +45,6 @@ def cmd_add_app_analyze(ctx, syscall_trace, post_sim_sysroot_path, app_name):
             fatal("App's pristine sysroot [%s] does not exist" % pristine_sysroot_path)
 
         new_manifest = update_manifest_fs_access(manifest, pristine_sysroot_path, post_sim_sysroot_path, syscall_trace)
+        new_manifest = update_manifest_instret(new_manifest, final_state_json)
         save_to_manifest_db(app_name, new_manifest, db_path=manifest_db_path)
         print("Done.")
