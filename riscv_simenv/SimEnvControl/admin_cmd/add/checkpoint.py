@@ -6,7 +6,7 @@ import sys
 import click
 
 from ...libsimenv.autocomplete import complete_app_names
-from ...libsimenv.checkpoints_db import get_app_ckpt_dir, get_checkpoint_abspath
+from ...libsimenv.checkpoints_db import get_app_checkpoint_dir, get_checkpoint_abspath
 from ...libsimenv.manifest_db import is_app_available, prompt_app_name_suggestion
 from ...libsimenv.repo_path import get_repo_components_path
 from ...libsimenv.sysroots_db import set_file_readonly_ugo
@@ -29,7 +29,7 @@ def cmd_add_checkpoint(ctx, app_name, checkpoints, scrub):
         fatal("Manifest for app \"%s\" not found." % app_name)
         prompt_app_name_suggestion(app_name, manifest_db_path)
         sys.exit(-1)
-    app_ckpt_dir = get_app_ckpt_dir(checkpoints_archive_path, app_name)
+    app_ckpt_dir = get_app_checkpoint_dir(checkpoints_archive_path, app_name)
 
     if os.path.exists(app_ckpt_dir):
         if scrub:

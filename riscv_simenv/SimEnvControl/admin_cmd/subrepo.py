@@ -8,7 +8,7 @@ import click
 
 from ..libsimenv.app_manifest import verify_manifest_format, Manifest_t
 from ..libsimenv.autocomplete import complete_app_names
-from ..libsimenv.checkpoints_db import get_app_ckpt_dir
+from ..libsimenv.checkpoints_db import get_app_checkpoint_dir
 from ..libsimenv.manifest_db import is_app_available, prompt_app_name_suggestion, load_from_manifest_db, \
     get_manifest_path
 from ..libsimenv.repo_path import create_repo, get_manifests_dir, get_checkpoints_dir, get_sysroots_dir, \
@@ -29,7 +29,7 @@ def discover_files(manifest_db_path, checkpoints_archive_path, sysroots_archive_
 
     manifest_path = get_manifest_path(manifest_db_path, app_name)
     sysroot_dir = get_pristine_sysroot_dir(sysroots_archive_path, manifest["app_pristine_sysroot"])
-    checkpoints_dir = get_app_ckpt_dir(checkpoints_archive_path, app_name)
+    checkpoints_dir = get_app_checkpoint_dir(checkpoints_archive_path, app_name)
 
     return manifest, manifest_path, sysroot_dir, checkpoints_dir
 
@@ -92,7 +92,7 @@ def cmd_sub_repo(ctx, checkpoints, new_repo_root, app_names):
                 get_sysroots_dir(new_repo_root),
                 app_manifest["app_pristine_sysroot"]
             )
-            new_ckpt_dir = get_app_ckpt_dir(
+            new_ckpt_dir = get_app_checkpoint_dir(
                 get_checkpoints_dir(new_repo_root),
                 app_name
             )
