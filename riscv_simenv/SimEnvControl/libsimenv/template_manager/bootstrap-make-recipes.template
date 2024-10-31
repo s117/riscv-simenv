@@ -1,13 +1,13 @@
 REPO_PATH = {repo_path}
-SYSCALL_TRACE_PATH = "$(TOP_DIR)/syscall-bootstrap.trace"
-FINAL_STATE_DUMP_PATH = "$(TOP_DIR)/final-state.json"
+SYSCALL_TRACE_PATH = $(TOP_DIR)/syscall-bootstrap.trace
+FINAL_STATE_DUMP_PATH = $(TOP_DIR)/final-state.json
 
 .PHONY: bootstrap-run bootstrap-analyze
 
 bootstrap-run:
 	@ echo Bootstrap app $(APP_NAME) - Run simulation
 	@ echo Dumping the raw pristine sysroot for $(APP_NAME)...
-	riscv-simenv --repo-path "$(REPO_PATH)" spawn --raw $(APP_NAME) $(SIMENV_SYSROOT)
+	riscv-simenv --repo-path $(REPO_PATH) spawn --raw $(APP_NAME) $(SIMENV_SYSROOT)
 	@ echo Launching the bootstrap simulation...
 	$(SIM) -m$(APP_MEMSIZE) $(SIM_FLAGS) $(SIM_FLAGS_EXTRA) \
 	    $(FESVR_FLAGS) $(FESVR_FLAGS_EXTRA) +final-state-dump=$(FINAL_STATE_DUMP_PATH) +strace=$(SYSCALL_TRACE_PATH) +chroot=$(SIMENV_SYSROOT) +target-cwd=$(APP_INIT_CWD) \
@@ -17,4 +17,4 @@ bootstrap-run:
 bootstrap-analyze:
 	@ echo Bootstrap app $(APP_NAME) - SimEnv Analyze
 	@ echo Analyzing the data collected from the bootstrap run...
-	riscv-simenv --repo-path "$(REPO_PATH)" repo add app analyze $(APP_NAME) --syscall-trace "$(SYSCALL_TRACE_PATH)" --final-state-json "$(FINAL_STATE_DUMP_PATH)" --post-sim-sysroot-path "$(SIMENV_SYSROOT)"
+	riscv-simenv --repo-path $(REPO_PATH) repo add app analyze $(APP_NAME) --syscall-trace $(SYSCALL_TRACE_PATH) --final-state-json $(FINAL_STATE_DUMP_PATH) --post-sim-sysroot-path $(SIMENV_SYSROOT)
