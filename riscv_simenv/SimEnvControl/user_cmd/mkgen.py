@@ -1,12 +1,13 @@
 import os
 import pathlib
 import sys
+from typing import Optional
 
 import click
 
 from ..libsimenv.app_manifest import Manifest_t, verify_manifest_format
 from ..libsimenv.autocomplete import complete_chkpt_names, complete_app_names
-from ..libsimenv.checkpoints_db import check_checkpoint_exist, get_checkpoint_abspath
+from ..libsimenv.checkpoints_db import get_checkpoint_abspath
 from ..libsimenv.manifest_db import load_from_manifest_db, prompt_app_name_suggestion
 from ..libsimenv.repo_path import get_repo_components_path
 from ..libsimenv.template_manager import instantiate_template
@@ -46,7 +47,7 @@ def mkgen_bootstrap(manifest, repo_path):
 
 
 def mkgen_normal(manifest, checkpoint_to_load_path):
-    # type: (Manifest_t, str) -> str
+    # type: (Manifest_t, Optional[str]) -> str
     actual_app_cmd = manifest["app_cmd"]
     app_stdin_redir = manifest["app_stdin_redir"]
     if app_stdin_redir:
@@ -93,8 +94,11 @@ def cmd_mkgen(ctx, app_name, checkpoint, bootstrap):
     try:
         manifest = load_from_manifest_db(app_name, manifest_db_path)
         verify_manifest_format(manifest, skip_extra_field=True)
-        if checkpoint and not check_checkpoint_exist(checkpoints_archive_path, app_name, checkpoint):
-            fatal("App %s doesn't have checkpoint %s" % (app_name, checkpoint))
+        checkpoint_full_path = None
+        if checkpoint:
+            checkpoint_full_path = get_checkpoint_abspath(checkpoints_archive_path, app_name, checkpoint)
+            if not os.path.isfile(checkpoint_full_path):
+                fatal("App %s doesn't have checkpoint %s" % (app_name, checkpoint))
     except FileNotFoundError:
         print("Fatal: No manifest file for app '%s'" % app_name, file=sys.stderr)
         prompt_app_name_suggestion(app_name, manifest_db_path)
@@ -109,9 +113,7 @@ def cmd_mkgen(ctx, app_name, checkpoint, bootstrap):
         if bootstrap:
             generated_makefile = mkgen_bootstrap(manifest, ctx.obj["repo_path"])
         else:
-            checkpoint_path = get_checkpoint_abspath(checkpoints_archive_path, app_name,
-                                                     checkpoint) if checkpoint else None
-            generated_makefile = mkgen_normal(manifest, checkpoint_path)
+            generated_makefile = mkgen_normal(manifest, checkpoint_full_path)
 
         with open("Makefile", "w") as fp:
             fp.write(generated_makefile)
