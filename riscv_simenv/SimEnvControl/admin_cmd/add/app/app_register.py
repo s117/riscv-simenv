@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import pathlib
+import shlex
 
 import click
 
@@ -8,31 +9,44 @@ from ....libsimenv.app_manifest import new_manifest
 from ....libsimenv.autocomplete import complete_sysroot_names
 from ....libsimenv.manifest_db import save_to_manifest_db, is_app_available
 from ....libsimenv.repo_path import get_repo_components_path
-from ....libsimenv.shcmd_utils import extract_stdin_file_from_shcmd
 from ....libsimenv.sysroots_db import get_pristine_sysroot_dir
 from ....libsimenv.utils import fatal, warning
 
 
-@click.command()
+@click.command(
+    context_settings={
+        "allow_interspersed_args": False,
+    }
+)
 @click.pass_context
-@click.option("-k", "--proxy-kernel", required=True,
-              help="The location of proxy kernel in the sysroot directory.")
-@click.option("-c", "--app-cmd-file", required=True, type=click.File(),
-              help="A single-line text file that contains the command to run this app.")
-@click.option("-w", "--app-init-cwd", required=True,
-              help="The CWD where you started this app. Use the target path, not host path.")
-@click.option("-m", "--memsize", required=True, type=click.INT,
-              help="The amount of RAM this app needs.")
-@click.option("-f", "--force-overwrite", is_flag=True,
-              help="[Danger] Remove existing manifest from the repository before register the new app.")
-@click.option("-s", "--sysroot-name", shell_complete=complete_sysroot_names, type=click.STRING,
+@click.option("--app-name", required=True, type=click.STRING,
+              help="The name of newly added app.")
+@click.option("--sysroot-name", shell_complete=complete_sysroot_names, type=click.STRING,
               help="The pristine sysroot name this app should use.")
+@click.option("--proxy-kernel", required=True, type=click.STRING,
+              help="The location of proxy kernel in the sysroot.")
+@click.option("--init-cwd", required=True,
+              help="The location of the launching working directory in the sysroot.")
+@click.option("--stdin-redir", required=False, type=click.STRING,
+              help="If specified, the location of a file in the sysroot to be STDIN redirected to the app.")
+@click.option("--memsize", required=True, type=click.INT,
+              help="The amount of RAM this app needs.")
 @click.option("--copy-spawn", is_flag=True,
               help="When spawning this simenv, copying all it's input instead of making symbolic link if possible.")
-@click.argument("app-name", type=click.STRING)
+@click.option("--force-overwrite", is_flag=True,
+              help="[Danger] Remove existing manifest from the repository before register the new app.")
+@click.argument("app-cmds", nargs=-1, type=click.UNPROCESSED)
 def cmd_add_app_register(
-        ctx, proxy_kernel, app_cmd_file, app_init_cwd, memsize, force_overwrite, copy_spawn,
-        app_name, sysroot_name,
+        ctx,
+        app_name,
+        sysroot_name,
+        proxy_kernel,
+        init_cwd,
+        stdin_redir,
+        memsize,
+        copy_spawn,
+        force_overwrite,
+        app_cmds
 ):
     """
     Register the app's basic information and creating a manifest entry for it.
@@ -41,11 +55,19 @@ def cmd_add_app_register(
     """
     repo_path = ctx.obj["repo_path"]
     sysroots_archive_path, manifest_db_path, _ = get_repo_components_path(repo_path)
+    if stdin_redir is None:
+        stdin_redir = ""
 
-    if not pathlib.PurePosixPath(app_init_cwd).is_absolute():
+    if not pathlib.PurePosixPath(init_cwd).is_absolute():
         fatal("app initial CWD must be an absolute path in the scope of the pristine sysroot.")
     if not pathlib.PurePosixPath(proxy_kernel).is_absolute():
-        fatal("app Proxy Kernel path must be a absolute path in the scope of the pristine sysroot.")
+        proxy_kernel = str(
+            pathlib.PurePosixPath(init_cwd) / proxy_kernel
+        )
+    if stdin_redir and not pathlib.PurePosixPath(stdin_redir).is_absolute():
+        stdin_redir = str(
+            pathlib.PurePosixPath(init_cwd) / stdin_redir
+        )
 
     # 1. Check existing information
     # 1.1 Check manifest
@@ -61,40 +83,31 @@ def cmd_add_app_register(
         fatal(f"cannot find pristine sysroot \"{sysroot_name}\".")
 
     # 2. Ensure all aux files exists
-    # 2.1 check STDIN files existence
-    app_cmd = app_cmd_file.read().strip()
-    stdin_files = extract_stdin_file_from_shcmd(app_cmd)
-    if stdin_files is None:
-        warning("Fail to parse the commandline to analyze STDIN input file(s).")
-    if stdin_files:
-        output_lines = []
-        for f in stdin_files:
-            if pathlib.PurePosixPath(f).is_absolute():
-                f_hostpath = os.path.join(pristine_sysroot_path, f".{f}")
-            else:
-                f_hostpath = os.path.join(pristine_sysroot_path, f".{app_init_cwd}", f)
-            if os.path.isfile(f_hostpath):
-                output_lines.append(f"   - \"{f}\" (at \"{f_hostpath}\")")
-            else:
-                fatal(f"Cannot locate the STDIN intput file {f} inside the pristine sysroot at \"{f_hostpath}\"")
-        print(
-            "Detected following file(s) to be passed as the input via "
-            f"STDIN redirection from the app launch command: {app_cmd}"
-        )
-        print("\n".join(output_lines))
-        print("Notice: The path(s) above is shown as 'target path'.")
+    # 2.1 check init CWD existence
+    init_cwd_path = os.path.join(pristine_sysroot_path, f".{init_cwd}")
+    if not os.path.isdir(init_cwd_path):
+        fatal(
+            f"Cannot locate the init CWD folder '{init_cwd}' inside the pristine sysroot at '{init_cwd_path}'.")
 
-    # 2.2 check proxy kernel existence
+    # 2.2 check STDIN files existence
+    if stdin_redir:
+        stdin_redir_path = os.path.join(pristine_sysroot_path, f".{stdin_redir}")
+        if not os.path.isfile(stdin_redir_path):
+            fatal(
+                f"Cannot locate the STDIN intput file '{stdin_redir}' inside the pristine sysroot at '{stdin_redir_path}'.")
+
+    # 2.3 check proxy kernel existence
     proxy_kernel_path = os.path.join(pristine_sysroot_path, f".{proxy_kernel}")
     if not os.path.isfile(proxy_kernel_path):
         fatal(
-            f"Cannot locate the PK \"{proxy_kernel}\" inside the the pristine sysroot at \"{proxy_kernel_path}\""
+            f"Cannot locate the PK '{proxy_kernel}' inside the the pristine sysroot at '{proxy_kernel_path}'."
         )
 
     # 3. create a new manifest
     # (skip filling the "fs_access" section, which is to be updated by the "analyze" subcommand)
     print("Creating manifest record for app %s" % app_name)
-    manifest = new_manifest(app_name, proxy_kernel, app_cmd, app_init_cwd, memsize, sysroot_name, copy_spawn)
+    app_cmd = " ".join(map(shlex.quote, app_cmds))
+    manifest = new_manifest(app_name, proxy_kernel, stdin_redir, app_cmd, init_cwd, memsize, sysroot_name, copy_spawn)
     save_to_manifest_db(app_name, manifest, db_path=manifest_db_path)
 
     print("Done.")

@@ -6,19 +6,18 @@ from typing import Dict, Union, TextIO, Set, Tuple, List
 
 from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo, stat_file_usage
 from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.syscall_trace_constructor import SyscallTraceConstructor
-from riscv_simenv.SyscallAnalysis.libsyscall.syscalls.syscall import GenericPath
 from .content_manager import ContentManager
-from .shcmd_utils import extract_stdin_file_from_shcmd
-from .utils import fatal, warning, is_valid_sha256
+from .utils import fatal, is_valid_sha256
 
 Manifest_t = Dict[str, Union[str, Dict, List]]
 
 
-def new_manifest(app_name, proxy_kernel, app_cmd, app_init_cwd, memsize, sysroot_name, copy_spawn):
-    # type: (str, str, str, str, int, str, bool) -> Manifest_t
+def new_manifest(app_name, proxy_kernel, stdin_redir, app_cmd, app_init_cwd, memsize, sysroot_name, copy_spawn):
+    # type: (str, str, str, str, str, int, str, bool) -> Manifest_t
     manifest = dict()
     manifest["app_name"] = app_name
     manifest["app_proxy_kernel"] = proxy_kernel
+    manifest["app_stdin_redir"] = stdin_redir
     manifest["app_cmd"] = app_cmd
     manifest["app_init_cwd"] = app_init_cwd
     manifest["app_memsize"] = memsize
@@ -91,37 +90,29 @@ def update_manifest_fs_access(existing_manifest, pristine_sysroot_path, post_sim
     for path, file_usage in file_usage_info.items():
         manifest_add_fs_access_entry(path, file_usage)
 
-    # 2. Record the input files passed via STDIN redirection
-    # 2.1 Parse the app command
-    stdin_files = extract_stdin_file_from_shcmd(app_cmd)
-    if stdin_files is None:
-        warning("Fail to parse the commandline for analyzing STDIN input file(s).")
-        stdin_files = []
-    elif stdin_files:
-        print(f"Recognized following file(s) passed as the input via stdin from the app run command [{app_cmd}]")
-        for f in stdin_files:
-            print(f"   - {f}")
-        print("Notice: The path(s) above will be dealt as 'target path'.")
-    # 2.2 Record input files passed as STDIN
+    # 2. Handle extra input files
     readonly_usage = FileUsageInfo.build_from_str("FUSE_OPEN_RD | FUSE_READ_DATA")
-    for path in stdin_files:
-        stdin_file_target_path = GenericPath(app_init_cwd, path).abspath()
+    # 2.1 Handle the input via STDIN redirection (if used)
+    stdin_file_target_path = manifest["app_stdin_redir"]
+    if stdin_file_target_path:
+        assert pathlib.PurePosixPath(stdin_file_target_path).is_absolute()
+        print(f"File '{stdin_file_target_path}' was passed as the input to the app via STDIN redirection.")
+        # 2.2 Record input files passed as STDIN
         if not content_manager.locate_pristine_file(stdin_file_target_path):
             fatal(
-                "Cmdline analysis shows the app will use file [%s] via stdin redirect, "
+                "Manifest indicates the app uses file [%s] via STDIN redirection, "
                 "but it is not found in the pristine sysroot [%s]" %
                 (stdin_file_target_path, content_manager.get_pristine_sysroot())
             )
         manifest_add_fs_access_entry(stdin_file_target_path, readonly_usage)
-        print(f"Added stdin redirect source [{path}] to manifest")
-
-    # 3. Add proxy kernel (if not already added)
+        print(f"Added STDIN redirection input [{stdin_file_target_path}] to the manifest.")
+    # 2.2 Handle the proxy kernel
     if not content_manager.locate_pristine_file(app_proxy_kernel):
         fatal(
             f"Cannot find the proxy kernel inside the pristine sysroot at \"{app_proxy_kernel}\"."
         )
     manifest_add_fs_access_entry(app_proxy_kernel, readonly_usage)
-    print(f"Added proxy kernel [{app_proxy_kernel}] to manifest")
+    print(f"Added proxy kernel [{app_proxy_kernel}] to the manifest.")
 
     verify_manifest_fs_access_format(manifest)
 
@@ -249,6 +240,7 @@ def verify_manifest_format(manifest, skip_extra_field=False):
     # type: (Manifest_t, bool) -> bool
     _ensure_str_type(manifest, "app_name")
     _ensure_str_type(manifest, "app_proxy_kernel")
+    _ensure_str_type(manifest, "app_stdin_redir")
     _ensure_str_type(manifest, "app_cmd")
     _ensure_str_type(manifest, "app_init_cwd")
     _ensure_str_type(manifest, "app_pristine_sysroot")
