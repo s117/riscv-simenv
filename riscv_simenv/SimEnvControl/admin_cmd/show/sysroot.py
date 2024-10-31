@@ -17,8 +17,11 @@ def cmd_show_sysroot(ctx, without_size):
 
     sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
     sysroots = get_all_sysroots(sysroots_db_path=sysroots_archive_path)
-    sysroots_apps_dep = stat_app_sysroot_dependency(manifest_db_path)
+    if not sysroots:
+        print("No sysroots found.")
+        return
 
+    sysroots_apps_dep = stat_app_sysroot_dependency(manifest_db_path)
     row = []
     for sysroot in natsorted(sysroots):
         sysroot_path = get_pristine_sysroot_dir(sysroots_archive_path, sysroot)

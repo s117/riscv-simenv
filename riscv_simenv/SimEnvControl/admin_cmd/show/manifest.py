@@ -15,8 +15,11 @@ def cmd_show_manifest(ctx):
 
     sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
     apps = get_avail_apps_in_db(db_path=manifest_db_path)
-    row = []
+    if not apps:
+        print("No manifests found.")
+        return
 
+    row = []
     for app in natsorted(apps):
         app_manifest_path = get_manifest_path(manifest_db_path, app)
         app_manifest = load_from_manifest_db(app, manifest_db_path)
