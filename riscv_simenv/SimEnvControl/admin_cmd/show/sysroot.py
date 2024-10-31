@@ -9,8 +9,10 @@ from ...libsimenv.utils import get_size_str
 
 
 @click.command()
+@click.option("--without-size", is_flag=True,
+              help="Skip calculating the size of each sysroot (therefore running faster).")
 @click.pass_context
-def cmd_show_sysroot(ctx):
+def cmd_show_sysroot(ctx, without_size):
     from . import tabulate_formats
 
     sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
@@ -24,7 +26,7 @@ def cmd_show_sysroot(ctx):
             dep = ", ".join(sysroots_apps_dep[sysroot])
         else:
             dep = '-'
-        sysroot_size = get_size_str(sysroot_path)
+        sysroot_size = "-" if without_size else get_size_str(sysroot_path)
         row.append(
             [sysroot, sysroot_size, dep, sysroot_path]
         )
