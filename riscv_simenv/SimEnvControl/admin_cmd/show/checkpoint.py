@@ -18,6 +18,7 @@ def cmd_show_checkpoint(ctx, app_name):
     if not avail_checkpoints:
         print(f"{app_name} doesn't have any checkpoints.")
         return
+
     row = []
     for checkpoint in avail_checkpoints:
         checkpoint_path = get_checkpoint_abspath(checkpoints_archive_path, app_name, checkpoint)
