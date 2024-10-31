@@ -21,11 +21,14 @@ def cmd_show_manifest(ctx):
         base_ok, fs_access_ok, instret_ok = manifest_status(app_manifest)
         if not base_ok:
             manifest_status_str = 'INVALID'
+        elif not fs_access_ok and not instret_ok:
+            manifest_status_str = 'BASE'
         elif fs_access_ok and not instret_ok:
             manifest_status_str = 'BASE+FS_ACC'
         elif not fs_access_ok and instret_ok:
             manifest_status_str = 'BASE+INSTRET'
         else:
+            assert fs_access_ok and instret_ok
             manifest_status_str = 'FULL'
         manifest_size_str = get_size_str(app_manifest_path)
         row.append((app, manifest_status_str, manifest_size_str, app_manifest_path))
