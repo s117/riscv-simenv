@@ -11,6 +11,8 @@ from ...libsimenv.utils import get_size_str
 @click.command()
 @click.pass_context
 def cmd_show_sysroot(ctx):
+    from . import tabulate_formats
+
     sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
     sysroots = get_all_sysroots(sysroots_db_path=sysroots_archive_path)
     sysroots_apps_dep = stat_app_sysroot_dependency(manifest_db_path)
@@ -26,4 +28,11 @@ def cmd_show_sysroot(ctx):
         row.append(
             [sysroot, sysroot_size, dep, sysroot_path]
         )
-    print(tabulate(row, headers=["Sysroot name", "Size", "Used by app", "Sysroot location"]))
+
+    print(
+        tabulate(
+            row,
+            headers=["Sysroot name", "Size", "Used by app", "Sysroot location"],
+            **tabulate_formats
+        )
+    )

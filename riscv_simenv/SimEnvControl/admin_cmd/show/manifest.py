@@ -11,6 +11,8 @@ from ...libsimenv.utils import get_size_str
 @click.command()
 @click.pass_context
 def cmd_show_manifest(ctx):
+    from . import tabulate_formats
+
     sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
     apps = get_avail_apps_in_db(db_path=manifest_db_path)
     row = []
@@ -33,4 +35,10 @@ def cmd_show_manifest(ctx):
         manifest_size_str = get_size_str(app_manifest_path)
         row.append((app, manifest_status_str, manifest_size_str, app_manifest_path))
 
-    print(tabulate(row, headers=["App name", "Manifest status", "Manifest size", "Manifest location"]))
+    print(
+        tabulate(
+            row,
+            headers=["App name", "Manifest status", "Manifest size", "Manifest location"],
+            **tabulate_formats
+        )
+    )

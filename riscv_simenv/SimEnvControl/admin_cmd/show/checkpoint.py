@@ -11,6 +11,8 @@ from ...libsimenv.utils import get_size_str
 @click.pass_context
 @click.argument("app-name", shell_complete=complete_app_names, type=click.STRING)
 def cmd_show_checkpoint(ctx, app_name):
+    from . import tabulate_formats
+
     sysroots_archive_path, manifest_db_path, checkpoints_archive_path = get_repo_components_path(ctx.obj["repo_path"])
     avail_checkpoints = get_available_checkpoints_for_app(checkpoints_archive_path, app_name)
     if not avail_checkpoints:
@@ -22,4 +24,10 @@ def cmd_show_checkpoint(ctx, app_name):
         checkpoint_size = get_size_str(checkpoint_path)
         row.append([checkpoint, checkpoint_size, checkpoint_path])
 
-    print(tabulate(row, headers=["Checkpoint", "Checkpoint Size", "Checkpoint Path"]))
+    print(
+        tabulate(
+            row,
+            headers=["Checkpoint", "Checkpoint Size", "Checkpoint Path"],
+            **tabulate_formats
+        )
+    )

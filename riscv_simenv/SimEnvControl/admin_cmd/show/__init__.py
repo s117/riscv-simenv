@@ -17,3 +17,7 @@ def cmd_group_show(ctx):
 cmd_group_show.add_command(cmd_show_checkpoint, name="checkpoint")
 cmd_group_show.add_command(cmd_show_manifest, name="manifest")
 cmd_group_show.add_command(cmd_show_sysroot, name="sysroot")
+tabulate_formats = {
+    "tablefmt": "fancy_grid",
+    "maxcolwidths": 32
+}
