@@ -1,4 +1,5 @@
 import os
+import pathlib
 import sys
 
 import click
@@ -8,7 +9,6 @@ from ..libsimenv.autocomplete import complete_chkpt_names, complete_app_names
 from ..libsimenv.checkpoints_db import check_checkpoint_exist, get_checkpoint_abspath
 from ..libsimenv.manifest_db import load_from_manifest_db, prompt_app_name_suggestion
 from ..libsimenv.repo_path import get_repo_components_path
-from ..libsimenv.shcmd_utils import add_base_to_stdin_file_in_shcmd
 from ..libsimenv.template_manager import instantiate_template
 from ..libsimenv.utils import fatal
 
@@ -19,7 +19,12 @@ BOOTSTRAP_SIMULATOR = "spike"
 
 def mkgen_bootstrap(manifest, repo_path):
     # type: (Manifest_t, str) -> str
-    actual_app_cmd = add_base_to_stdin_file_in_shcmd(manifest["app_cmd"], "$(SIMENV_SYSROOT)", "$(APP_INIT_CWD)")
+    actual_app_cmd = manifest["app_cmd"]
+    app_stdin_redir = manifest["app_stdin_redir"]
+    if app_stdin_redir:
+        assert pathlib.PurePosixPath(app_stdin_redir).is_absolute()
+        actual_app_cmd += f" <$(SIMENV_SYSROOT){app_stdin_redir}"
+
     bootstrap_recipes = instantiate_template(
         "bootstrap-make-recipes",
         repo_path=repo_path
@@ -42,7 +47,11 @@ def mkgen_bootstrap(manifest, repo_path):
 
 def mkgen_normal(manifest, checkpoint_to_load_path):
     # type: (Manifest_t, str) -> str
-    actual_app_cmd = add_base_to_stdin_file_in_shcmd(manifest["app_cmd"], "$(SIMENV_SYSROOT)", "$(APP_INIT_CWD)")
+    actual_app_cmd = manifest["app_cmd"]
+    app_stdin_redir = manifest["app_stdin_redir"]
+    if app_stdin_redir:
+        assert pathlib.PurePosixPath(app_stdin_redir).is_absolute()
+        actual_app_cmd += f" <$(SIMENV_SYSROOT){app_stdin_redir}"
     actual_ckpt_flag = os.getenv("RISCV_SIMENV_SIM_FLAG_LDCKPT", default=DEFAULT_CHECKPOINT_LOAD_FLAG)
     actual_sim = os.getenv("RISCV_SIMENV_SIM_CMD", default=DEFAULT_SIMULATOR)
 
