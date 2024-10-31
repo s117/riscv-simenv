@@ -5,7 +5,7 @@ import click
 
 from riscv_simenv.SyscallAnalysis.libsyscall.analyzer.file_usage import FileUsageInfo
 from riscv_simenv.SyscallAnalysis.libsyscall.target_path_converter import TargetPathConverter
-from ..libsimenv.app_manifest import verify_manifest_format, Manifest_t
+from ..libsimenv.app_manifest import Manifest_t, verify_manifest_format, verify_manifest_fs_access_format
 from ..libsimenv.autocomplete import complete_app_names
 from ..libsimenv.manifest_db import load_from_manifest_db, prompt_app_name_suggestion
 from ..libsimenv.repo_path import get_repo_components_path
@@ -166,7 +166,8 @@ def cmd_env_verify(ctx, app_name, simenv_path):
         if "fs_access" not in manifest:
             print(f"Cannot verify {app_name} because its manifest doesn't include FS access information")
             sys.exit(-1)
-        verify_manifest_format(manifest)
+        verify_manifest_format(manifest, skip_extra_field=True)
+        verify_manifest_fs_access_format(manifest)
     except FileNotFoundError:
         print("Fatal: No manifest file for app '%s'" % app_name, file=sys.stderr)
         prompt_app_name_suggestion(app_name, manifest_db_path)
