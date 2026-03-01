@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import List, Dict
 
 import yaml
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 
 from .app_manifest import Manifest_t
 
